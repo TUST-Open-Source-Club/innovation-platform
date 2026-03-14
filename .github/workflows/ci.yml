@@ -1,4 +1,4 @@
-name: TUST BACK CI
+name: Maven Test CI
 
 # 当代码 push 到 main 分支，或者针对 main 分支提 PR 时触发
 on:
