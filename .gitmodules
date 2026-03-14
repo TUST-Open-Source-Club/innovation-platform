@@ -1,0 +1,3 @@
+[submodule "frontend"]
+	path = frontend
+	url = https://github.com/TUST-Open-Source-Club/innovation-platform-front.git
