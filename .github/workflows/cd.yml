@@ -1,0 +1,104 @@
+name: CD - Build and Push to GHCR
+
+on:
+  # 每天 UTC 时间 0:00 触发（北京时间 8:00）
+  schedule:
+    - cron: '0 0 * * *'
+  
+  # 允许手动触发
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: '自定义镜像标签 (可选，默认使用日期)'
+        required: false
+        default: ''
+
+env:
+  REGISTRY: ghcr.io
+  BACKEND_IMAGE_NAME: ${{ github.repository }}
+  # 前端镜像名：将后端仓库名中的 -backend 替换为 -frontend
+  FRONTEND_IMAGE_NAME: ${{ github.repository }}-frontend
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+      
+    steps:
+      - name: Checkout code with submodules
+        uses: actions/checkout@v4
+        with:
+          # 递归检出子模块（前端代码）
+          submodules: recursive
+          # 获取完整历史以便生成版本号
+          fetch-depth: 0
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # ==================== 构建后端镜像 ====================
+      - name: Extract backend metadata
+        id: meta-backend
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.BACKEND_IMAGE_NAME }}
+          tags: |
+            type=schedule,pattern={{date 'YYYYMMDD'}}
+            type=sha,prefix=,suffix=,format=short
+            type=raw,value=latest,enable={{is_default_branch}}
+            type=raw,value=${{ inputs.tag }},enable=${{ inputs.tag != '' }}
+
+      - name: Build and push backend image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile
+          push: true
+          tags: ${{ steps.meta-backend.outputs.tags }}
+          labels: ${{ steps.meta-backend.outputs.labels }}
+          cache-from: type=gha,scope=backend
+          cache-to: type=gha,mode=max,scope=backend
+          platforms: linux/amd64
+
+      # ==================== 构建前端镜像 ====================
+      - name: Extract frontend metadata
+        id: meta-frontend
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.FRONTEND_IMAGE_NAME }}
+          tags: |
+            type=schedule,pattern={{date 'YYYYMMDD'}}
+            type=sha,prefix=,suffix=,format=short
+            type=raw,value=latest,enable={{is_default_branch}}
+            type=raw,value=${{ inputs.tag }},enable=${{ inputs.tag != '' }}
+
+      - name: Build and push frontend image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./frontend
+          file: ./frontend/Dockerfile
+          push: true
+          tags: ${{ steps.meta-frontend.outputs.tags }}
+          labels: ${{ steps.meta-frontend.outputs.labels }}
+          cache-from: type=gha,scope=frontend
+          cache-to: type=gha,mode=max,scope=frontend
+          platforms: linux/amd64
+
+      - name: Output image info
+        run: |
+          echo "📦 后端镜像:"
+          echo "  - ${{ env.REGISTRY }}/${{ env.BACKEND_IMAGE_NAME }}:latest"
+          echo ""
+          echo "📦 前端镜像:"
+          echo "  - ${{ env.REGISTRY }}/${{ env.FRONTEND_IMAGE_NAME }}:latest"
+          echo ""
+          echo "🚀 Watchtower 将在下次检查周期自动拉取更新"
