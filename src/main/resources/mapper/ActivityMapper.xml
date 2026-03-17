@@ -26,6 +26,7 @@
         <result column="max_participants" property="maxParticipants"/>
         <result column="registration_deadline" property="registrationDeadline"/>
         <result column="status" property="status"/>
+        <result column="is_deleted" property="isDeleted"/>
         <result column="approval_status" property="approvalStatus"/>
         <result column="reviewer_id" property="reviewerId"/>
         <result column="review_comment" property="reviewComment"/>
@@ -35,12 +36,13 @@
     </resultMap>
 
     <select id="selectById" resultMap="BaseResultMap">
-        SELECT * FROM activity WHERE id = #{id}
+        SELECT * FROM activity WHERE id = #{id} AND is_deleted = 0
     </select>
 
     <select id="selectPage" resultMap="BaseResultMap">
         SELECT * FROM activity
         <where>
+            AND is_deleted = 0
             <if test="status != null and status != ''">
                 AND status = #{status}
             </if>
@@ -61,6 +63,7 @@
     <select id="selectPageVisibleToUser" resultMap="BaseResultMap">
         SELECT * FROM activity
         <where>
+            AND is_deleted = 0
             <if test="status != null and status != ''">
                 AND status = #{status}
             </if>
@@ -83,6 +86,7 @@
     <select id="count" resultType="int">
         SELECT COUNT(*) FROM activity
         <where>
+            AND is_deleted = 0
             <if test="status != null and status != ''">
                 AND status = #{status}
             </if>
@@ -101,6 +105,7 @@
     <select id="countVisibleToUser" resultType="int">
         SELECT COUNT(*) FROM activity
         <where>
+            AND is_deleted = 0
             <if test="status != null and status != ''">
                 AND status = #{status}
             </if>
@@ -163,6 +168,7 @@
             <if test="maxParticipants != null">max_participants = #{maxParticipants},</if>
             <if test="registrationDeadline != null">registration_deadline = #{registrationDeadline},</if>
             <if test="status != null">status = #{status},</if>
+            <if test="isDeleted != null">is_deleted = #{isDeleted},</if>
             <if test="approvalStatus != null">approval_status = #{approvalStatus},</if>
             <if test="reviewerId != null">reviewer_id = #{reviewerId},</if>
             <if test="reviewComment != null">review_comment = #{reviewComment},</if>
@@ -179,7 +185,7 @@
     <select id="selectBySpaceIdAndDateTimeOverlap" resultMap="BaseResultMap">
         SELECT * FROM activity
         WHERE space_id = #{spaceId}
-          AND status != 'CANCELLED'
+          AND is_deleted = 0
           AND start_time &lt; #{endDateTime}
           AND end_time &gt; #{startDateTime}
           <if test="excludeActivityId != null">

@@ -251,4 +251,27 @@ public class ProjectService {
         projectMapper.update(project);
         return projectMapper.selectById(projectId);
     }
+
+    /**
+     * 逻辑删除项目：设置 is_deleted = 1，保留原状态不变
+     * 仅系统管理员可删除
+     */
+    @Transactional
+    public void logicalDeleteProject(Long projectId) {
+        Project project = projectMapper.selectById(projectId);
+        if (project == null) {
+            throw new RuntimeException("项目不存在");
+        }
+
+        // 进行中或已完成的项目不允许删除
+        if (Constants.PROJECT_STATUS_IN_PROGRESS.equals(project.getStatus()) ||
+            Constants.PROJECT_STATUS_COMPLETED.equals(project.getStatus())) {
+            throw new RuntimeException("进行中或已完成的项目不允许删除");
+        }
+
+        // 软删除：设置 is_deleted = 1，保留原状态不变
+        project.setIsDeleted(1);
+        project.setUpdateTime(LocalDateTime.now());
+        projectMapper.update(project);
+    }
 }

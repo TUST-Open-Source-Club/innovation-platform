@@ -15,6 +15,7 @@
         <result column="instructor_name" property="instructorName"/>
         <result column="team_id" property="teamId"/>
         <result column="status" property="status"/>
+        <result column="is_deleted" property="isDeleted"/>
         <result column="approval_status" property="approvalStatus"/>
         <result column="review_comment" property="reviewComment"/>
         <result column="reviewer_id" property="reviewerId"/>
@@ -26,33 +27,33 @@
     </resultMap>
 
     <select id="selectById" resultMap="BaseResultMap">
-        SELECT p.*, u.phone AS leader_phone FROM project p LEFT JOIN user u ON p.leader_id = u.id WHERE p.id = #{id}
+        SELECT p.*, u.phone AS leader_phone FROM project p LEFT JOIN user u ON p.leader_id = u.id WHERE p.id = #{id} AND p.is_deleted = 0
     </select>
 
     <select id="selectByLeaderId" resultMap="BaseResultMap">
-        SELECT p.*, u.phone AS leader_phone FROM project p LEFT JOIN user u ON p.leader_id = u.id WHERE p.leader_id = #{leaderId} ORDER BY p.create_time DESC
+        SELECT p.*, u.phone AS leader_phone FROM project p LEFT JOIN user u ON p.leader_id = u.id WHERE p.leader_id = #{leaderId} AND p.is_deleted = 0 ORDER BY p.create_time DESC
     </select>
 
     <select id="selectByTeamId" resultMap="BaseResultMap">
-        SELECT p.*, u.phone AS leader_phone FROM project p LEFT JOIN user u ON p.leader_id = u.id WHERE p.team_id = #{teamId} ORDER BY p.create_time DESC
+        SELECT p.*, u.phone AS leader_phone FROM project p LEFT JOIN user u ON p.leader_id = u.id WHERE p.team_id = #{teamId} AND p.is_deleted = 0 ORDER BY p.create_time DESC
     </select>
 
     <select id="selectByStatus" resultMap="BaseResultMap">
-        SELECT p.*, u.phone AS leader_phone FROM project p LEFT JOIN user u ON p.leader_id = u.id WHERE p.status = #{status} ORDER BY p.create_time DESC
+        SELECT p.*, u.phone AS leader_phone FROM project p LEFT JOIN user u ON p.leader_id = u.id WHERE p.status = #{status} AND p.is_deleted = 0 ORDER BY p.create_time DESC
     </select>
 
     <select id="selectByStatusAndApprovalStatus" resultMap="BaseResultMap">
         SELECT p.*, u.phone AS leader_phone FROM project p LEFT JOIN user u ON p.leader_id = u.id
-        WHERE p.status = #{status} AND p.approval_status = #{approvalStatus}
+        WHERE p.status = #{status} AND p.approval_status = #{approvalStatus} AND p.is_deleted = 0
         ORDER BY p.create_time DESC
     </select>
 
     <select id="selectAll" resultMap="BaseResultMap">
-        SELECT p.*, u.phone AS leader_phone FROM project p LEFT JOIN user u ON p.leader_id = u.id ORDER BY p.create_time DESC
+        SELECT p.*, u.phone AS leader_phone FROM project p LEFT JOIN user u ON p.leader_id = u.id WHERE p.is_deleted = 0 ORDER BY p.create_time DESC
     </select>
 
     <select id="selectUnclaimed" resultMap="BaseResultMap">
-        SELECT p.*, NULL AS leader_phone FROM project p WHERE p.leader_id IS NULL ORDER BY p.create_time DESC
+        SELECT p.*, NULL AS leader_phone FROM project p WHERE p.leader_id IS NULL AND p.is_deleted = 0 ORDER BY p.create_time DESC
     </select>
 
     <insert id="insert" useGeneratedKeys="true" keyProperty="id">
@@ -74,6 +75,7 @@
             <if test="instructorName != null">instructor_name = #{instructorName},</if>
             <if test="teamId != null">team_id = #{teamId},</if>
             <if test="status != null">status = #{status},</if>
+            <if test="isDeleted != null">is_deleted = #{isDeleted},</if>
             <if test="approvalStatus != null">approval_status = #{approvalStatus},</if>
             <if test="reviewComment != null">review_comment = #{reviewComment},</if>
             <if test="reviewerId != null">reviewer_id = #{reviewerId},</if>

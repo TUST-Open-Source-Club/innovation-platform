@@ -32,6 +32,7 @@ public class Activity {
     private Integer maxParticipants; // 最大参与人数
     private LocalDateTime registrationDeadline; // 报名截止时间
     private String status; // 状态：DRAFT-草稿, SUBMITTED-已提交, APPROVED-已通过, REJECTED-已拒绝, PUBLISHED-已发布, ONGOING-进行中, COMPLETED-已完成, CANCELLED-已取消
+    private Integer isDeleted; // 是否删除：0-未删除，1-已删除（软删除）
     private String approvalStatus; // 审批状态：PENDING-待审批, APPROVED-已通过, REJECTED-已拒绝
     private Long reviewerId; // 审批人ID
     private String reviewComment; // 审批意见
