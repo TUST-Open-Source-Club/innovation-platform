@@ -23,6 +23,7 @@ public class Team {
     private String honors; // 团队历史荣誉（队长可设置）
     private String tags; // 项目标签，逗号分隔（队长可设置）
     private String instructorName; // 指导老师
+    private Boolean isDeleted; // 是否删除：false-未删除，true-已删除
     private LocalDateTime createTime;
     private LocalDateTime updateTime;
 }

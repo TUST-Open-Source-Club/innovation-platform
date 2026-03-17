@@ -23,20 +23,29 @@ public class SecurityArgumentResolver implements HandlerMethodArgumentResolver {
     @Override
     public boolean supportsParameter(MethodParameter parameter) {
         // 支持 @RequestAttribute("userId") 注解的 Long 类型参数
-        return parameter.hasParameterAnnotation(org.springframework.web.bind.annotation.RequestAttribute.class) 
-            && parameter.getParameterName().equals("userId")
-            && parameter.getParameterType().equals(Long.class);
+        return parameter.hasParameterAnnotation(org.springframework.web.bind.annotation.RequestAttribute.class)
+                && parameter.getParameterName().equals("userId")
+                && parameter.getParameterType().equals(Long.class);
     }
 
     @Override
     public Object resolveArgument(MethodParameter parameter, ModelAndViewContainer mavContainer,
-                                  NativeWebRequest webRequest, WebDataBinderFactory binderFactory) {
-        // 从 request attribute 中获取 userId（由 RoleInterceptor 设置）
+            NativeWebRequest webRequest, WebDataBinderFactory binderFactory) {
+        // 首先尝试从 request attribute 中获取 userId（由 RoleInterceptor 设置）
         HttpServletRequest request = webRequest.getNativeRequest(HttpServletRequest.class);
         if (request != null) {
             Object userId = request.getAttribute("userId");
             if (userId != null) {
                 return userId;
+            }
+
+            // 如果 request attribute 中没有，直接从 Authorization header 解析 token
+            String authHeader = request.getHeader("Authorization");
+            if (authHeader != null && authHeader.startsWith("Bearer ")) {
+                String token = authHeader.substring(7);
+                if (jwtUtil.validateToken(token)) {
+                    return jwtUtil.getUserIdFromToken(token);
+                }
             }
         }
         return null;

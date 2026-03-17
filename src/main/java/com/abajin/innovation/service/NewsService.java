@@ -196,4 +196,27 @@ public class NewsService {
 
         newsMapper.deleteById(newsId);
     }
+
+    /**
+     * 软删除新闻（管理员）
+     */
+    @Transactional
+    public void softDeleteNews(Long newsId) {
+        News news = newsMapper.selectById(newsId);
+        if (news == null) {
+            throw new RuntimeException("新闻不存在");
+        }
+        newsMapper.softDeleteById(newsId);
+    }
+
+    /**
+     * 批量软删除新闻（管理员）
+     */
+    @Transactional
+    public int softDeleteNewsBatch(List<Long> newsIds) {
+        if (newsIds == null || newsIds.isEmpty()) {
+            throw new RuntimeException("请选择要删除的新闻");
+        }
+        return newsMapper.softDeleteBatch(newsIds);
+    }
 }

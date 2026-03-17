@@ -180,4 +180,38 @@ public class NewsController {
             return Result.error(e.getMessage());
         }
     }
+
+    /**
+     * 软删除新闻（管理员）
+     * DELETE /api/news/{id}/soft
+     */
+    @DeleteMapping("/{id}/soft")
+    @RequiresRole(value = {Constants.ROLE_COLLEGE_ADMIN, Constants.ROLE_SCHOOL_ADMIN}, allowAdmin = true)
+    public Result<Void> softDeleteNews(@PathVariable Long id) {
+        try {
+            newsService.softDeleteNews(id);
+            return Result.success("新闻删除成功", null);
+        } catch (Exception e) {
+            return Result.error(e.getMessage());
+        }
+    }
+
+    /**
+     * 批量删除新闻（管理员）
+     * DELETE /api/news/batch
+     */
+    @DeleteMapping("/batch")
+    @RequiresRole(value = {Constants.ROLE_COLLEGE_ADMIN, Constants.ROLE_SCHOOL_ADMIN}, allowAdmin = true)
+    public Result<Integer> batchDeleteNews(@RequestBody Map<String, List<Long>> data) {
+        try {
+            List<Long> ids = data.get("ids");
+            if (ids == null || ids.isEmpty()) {
+                return Result.error("请选择要删除的新闻");
+            }
+            int count = newsService.softDeleteNewsBatch(ids);
+            return Result.success("成功删除 " + count + " 条新闻", count);
+        } catch (Exception e) {
+            return Result.error(e.getMessage());
+        }
+    }
 }

@@ -34,3 +34,5 @@ build/
 
 # macOS Files
 .DS_Store
+/plans/
+application.yaml

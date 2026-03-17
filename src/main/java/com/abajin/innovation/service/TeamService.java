@@ -364,4 +364,27 @@ public class TeamService {
         if ("否".equals(v) || "0".equals(v) || "false".equalsIgnoreCase(v) || "no".equalsIgnoreCase(v)) return false;
         return defaultValue;
     }
+
+    /**
+     * 软删除团队（管理员）
+     */
+    @Transactional
+    public void softDeleteTeam(Long teamId) {
+        Team team = teamMapper.selectById(teamId);
+        if (team == null) {
+            throw new RuntimeException("团队不存在");
+        }
+        teamMapper.softDeleteById(teamId);
+    }
+
+    /**
+     * 批量软删除团队（管理员）
+     */
+    @Transactional
+    public int softDeleteTeams(List<Long> teamIds) {
+        if (teamIds == null || teamIds.isEmpty()) {
+            throw new RuntimeException("请选择要删除的团队");
+        }
+        return teamMapper.softDeleteBatch(teamIds);
+    }
 }

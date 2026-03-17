@@ -26,6 +26,7 @@
         <result property="reviewComment" column="review_comment"/>
         <result property="reviewTime" column="review_time"/>
         <result property="publishTime" column="publish_time"/>
+        <result property="isDeleted" column="is_deleted"/>
         <result property="createTime" column="create_time"/>
         <result property="updateTime" column="update_time"/>
     </resultMap>
@@ -39,7 +40,7 @@
         LEFT JOIN news_category nc ON n.category_id = nc.id
         LEFT JOIN user u1 ON n.reviewer_id = u1.id
         LEFT JOIN activity a ON n.related_activity_id = a.id
-        WHERE n.id = #{id}
+        WHERE n.id = #{id} AND n.is_deleted = 0
     </select>
 
     <select id="selectPage" resultMap="NewsResultMap">
@@ -52,6 +53,7 @@
         LEFT JOIN user u1 ON n.reviewer_id = u1.id
         LEFT JOIN activity a ON n.related_activity_id = a.id
         <where>
+            AND n.is_deleted = 0
             <if test="title != null and title != ''">
                 AND n.title LIKE CONCAT('%', #{title}, '%')
             </if>
@@ -76,6 +78,7 @@
         SELECT COUNT(*)
         FROM news n
         <where>
+            AND n.is_deleted = 0
             <if test="title != null and title != ''">
                 AND n.title LIKE CONCAT('%', #{title}, '%')
             </if>
@@ -137,6 +140,20 @@
 
     <update id="incrementViewCount">
         UPDATE news SET view_count = view_count + 1 WHERE id = #{id}
+    </update>
+
+    <!-- 软删除 -->
+    <update id="softDeleteById">
+        UPDATE news SET is_deleted = 1, update_time = NOW() WHERE id = #{id}
+    </update>
+
+    <!-- 批量软删除 -->
+    <update id="softDeleteBatch" parameterType="list">
+        UPDATE news SET is_deleted = 1, update_time = NOW()
+        WHERE id IN
+        <foreach collection="list" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
     </update>
 
 </mapper>

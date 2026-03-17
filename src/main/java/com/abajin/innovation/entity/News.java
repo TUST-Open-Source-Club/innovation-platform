@@ -31,6 +31,7 @@ public class News {
     private String reviewComment; // 审批意见
     private LocalDateTime reviewTime; // 审批时间
     private LocalDateTime publishTime; // 发布时间
+    private Boolean isDeleted; // 是否删除：false-未删除，true-已删除
     private LocalDateTime createTime;
     private LocalDateTime updateTime;
 }

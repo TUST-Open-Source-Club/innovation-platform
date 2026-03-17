@@ -196,6 +196,7 @@ public class TeamController {
      * 检查用户是否是团队成员
      * GET /api/teams/{id}/members/check?userId={userId}
      */
+
     /**
      * 获取团队关联的项目列表（team_id 关联）
      * GET /api/teams/{id}/projects
@@ -258,6 +259,40 @@ public class TeamController {
         try {
             List<TeamMember> applications = teamService.getPendingApplications(id, userId);
             return Result.success(applications);
+        } catch (Exception e) {
+            return Result.error(e.getMessage());
+        }
+    }
+
+    /**
+     * 删除团队（管理员）
+     * DELETE /api/teams/{id}
+     */
+    @DeleteMapping("/{id}")
+    @RequiresRole(value = {Constants.ROLE_COLLEGE_ADMIN, Constants.ROLE_SCHOOL_ADMIN}, allowAdmin = true)
+    public Result<Void> deleteTeam(@PathVariable Long id) {
+        try {
+            teamService.softDeleteTeam(id);
+            return Result.success("团队删除成功", null);
+        } catch (Exception e) {
+            return Result.error(e.getMessage());
+        }
+    }
+
+    /**
+     * 批量删除团队（管理员）
+     * DELETE /api/teams/batch
+     */
+    @DeleteMapping("/batch")
+    @RequiresRole(value = {Constants.ROLE_COLLEGE_ADMIN, Constants.ROLE_SCHOOL_ADMIN}, allowAdmin = true)
+    public Result<Integer> batchDeleteTeams(@RequestBody Map<String, List<Long>> data) {
+        try {
+            List<Long> ids = data.get("ids");
+            if (ids == null || ids.isEmpty()) {
+                return Result.error("请选择要删除的团队");
+            }
+            int count = teamService.softDeleteTeams(ids);
+            return Result.success("成功删除 " + count + " 个团队", count);
         } catch (Exception e) {
             return Result.error(e.getMessage());
         }

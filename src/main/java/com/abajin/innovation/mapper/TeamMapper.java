@@ -32,7 +32,7 @@ public interface TeamMapper {
     int update(Team team);
 
     /**
-     * 删除团队
+     * 删除团队（硬删除）
      */
     int deleteById(@Param("id") Long id);
 
@@ -40,4 +40,14 @@ public interface TeamMapper {
      * 查询所有团队
      */
     List<Team> selectAll();
+
+    /**
+     * 软删除团队
+     */
+    int softDeleteById(@Param("id") Long id);
+
+    /**
+     * 批量软删除团队
+     */
+    int softDeleteBatch(@Param("list") List<Long> ids);
 }

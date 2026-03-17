@@ -51,7 +51,7 @@ public interface NewsMapper {
     int update(News news);
 
     /**
-     * 删除新闻
+     * 删除新闻（硬删除）
      */
     int deleteById(@Param("id") Long id);
 
@@ -59,4 +59,14 @@ public interface NewsMapper {
      * 增加浏览次数
      */
     int incrementViewCount(@Param("id") Long id);
+
+    /**
+     * 软删除新闻
+     */
+    int softDeleteById(@Param("id") Long id);
+
+    /**
+     * 批量软删除新闻
+     */
+    int softDeleteBatch(@Param("list") List<Long> ids);
 }
