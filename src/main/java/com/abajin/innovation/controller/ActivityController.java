@@ -11,6 +11,7 @@ import com.abajin.innovation.entity.ActivityRegistration;
 import com.abajin.innovation.entity.ActivitySummary;
 import com.abajin.innovation.util.MinioUtils;
 import jakarta.validation.Valid;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.bind.annotation.*;
@@ -25,6 +26,7 @@ import java.util.UUID;
 /**
  * 活动管理控制器
  */
+@Slf4j
 @RestController
 @RequestMapping("/activities")
 public class ActivityController {
@@ -353,6 +355,33 @@ public class ActivityController {
             return Result.success("取消报名成功", null);
         } catch (Exception e) {
             return Result.error(e.getMessage());
+        }
+    }
+
+    /**
+     * 逻辑删除活动（软删除）
+     * 仅系统管理员可删除
+     * DELETE /api/activities/{id}
+     */
+    @DeleteMapping("/{id}")
+    @RequiresRole(value = Constants.ROLE_SCHOOL_ADMIN)
+    public Result<Void> deleteActivity(
+            @PathVariable Long id,
+            @RequestAttribute(value = "userId", required = false) Long userId,
+            @RequestAttribute(value = "role", required = false) String role) {
+        log.info("删除活动请求: id={}, userId={}, role={}", id, userId, role);
+        if (userId == null) {
+            return Result.error("用户未登录或登录已过期");
+        }
+        try {
+            activityService.logicalDeleteActivity(id, userId, role);
+            return Result.success("活动已删除", null);
+        } catch (RuntimeException e) {
+            log.warn("删除活动业务异常: {}", e.getMessage());
+            return Result.error(e.getMessage());
+        } catch (Exception e) {
+            log.error("删除活动系统异常: ", e);
+            return Result.error("系统繁忙，请稍后重试");
         }
     }
 }

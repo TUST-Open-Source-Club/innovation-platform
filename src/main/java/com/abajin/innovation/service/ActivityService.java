@@ -14,6 +14,7 @@ import com.abajin.innovation.mapper.ActivitySummaryMapper;
 import com.abajin.innovation.mapper.SpaceReservationMapper;
 import com.abajin.innovation.mapper.UserMapper;
 import com.abajin.innovation.entity.SpaceReservation;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -24,6 +25,7 @@ import java.util.List;
 /**
  * 活动管理服务类
  */
+@Slf4j
 @Service
 public class ActivityService {
     @Autowired
@@ -458,5 +460,48 @@ public class ActivityService {
             return summary;
         }
         return null;
+    }
+
+    /**
+     * 逻辑删除活动：设置 is_deleted = 1，保留原状态不变
+     */
+    @Transactional
+    public void logicalDeleteActivity(Long activityId, Long userId, String role) {
+        log.info("逻辑删除活动: activityId={}, userId={}, role={}", activityId, userId, role);
+
+        if (activityId == null) {
+            throw new RuntimeException("活动ID不能为空");
+        }
+
+        Activity activity = activityMapper.selectById(activityId);
+        if (activity == null) {
+            throw new RuntimeException("活动不存在");
+        }
+
+        log.info("找到活动: id={}, title={}, currentStatus={}, organizerId={}",
+                activity.getId(), activity.getTitle(), activity.getStatus(), activity.getOrganizerId());
+
+        // 仅系统管理员可删除
+        if (!Constants.ROLE_SCHOOL_ADMIN.equals(role)) {
+            throw new RuntimeException("只有系统管理员才能删除活动");
+        }
+
+        ActivityStatus currentStatus;
+        try {
+            currentStatus = ActivityStatus.valueOf(activity.getStatus());
+        } catch (IllegalArgumentException | NullPointerException e) {
+            currentStatus = null;
+        }
+        if (currentStatus == ActivityStatus.ONGOING || currentStatus == ActivityStatus.COMPLETED) {
+            throw new RuntimeException("进行中或已完成的活动不允许删除");
+        }
+
+        // 软删除：设置 is_deleted = 1，保留原状态不变
+        activity.setIsDeleted(1);
+        activity.setUpdateTime(LocalDateTime.now());
+
+        log.info("更新活动 is_deleted=1: id={}, 原状态保留为: {}", activity.getId(), activity.getStatus());
+        int affectedRows = activityMapper.update(activity);
+        log.info("更新完成: affectedRows={}", affectedRows);
     }
 }

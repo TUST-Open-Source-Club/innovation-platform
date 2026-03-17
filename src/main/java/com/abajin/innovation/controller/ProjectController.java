@@ -174,4 +174,22 @@ public class ProjectController {
             return Result.error(e.getMessage());
         }
     }
+
+    /**
+     * 逻辑删除项目（软删除）
+     * 仅系统管理员可删除
+     * DELETE /api/projects/{id}
+     */
+    @DeleteMapping("/{id}")
+    @RequiresRole(value = Constants.ROLE_SCHOOL_ADMIN)
+    public Result<Void> deleteProject(@PathVariable Long id) {
+        try {
+            projectService.logicalDeleteProject(id);
+            return Result.success("项目已删除", null);
+        } catch (RuntimeException e) {
+            return Result.error(e.getMessage());
+        } catch (Exception e) {
+            return Result.error("系统繁忙，请稍后重试");
+        }
+    }
 }
