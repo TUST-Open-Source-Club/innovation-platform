@@ -4,7 +4,6 @@
     <resultMap id="BaseResultMap" type="com.abajin.innovation.entity.Space">
         <id column="id" property="id"/>
         <result column="name" property="name"/>
-        <result column="space_type_id" property="spaceTypeId"/>
         <result column="location" property="location"/>
         <result column="capacity" property="capacity"/>
         <result column="facilities" property="facilities"/>
@@ -23,7 +22,7 @@
     </select>
 
     <select id="selectByTypeId" resultMap="BaseResultMap">
-        SELECT * FROM space WHERE space_type_id = #{spaceTypeId} and is_deleted = 0 ORDER BY create_time DESC
+        SELECT * FROM space WHERE is_deleted = 0 ORDER BY create_time DESC
     </select>
 
     <select id="selectByStatus" resultMap="BaseResultMap">
@@ -47,7 +46,6 @@
         UPDATE space
         <set>
             <if test="name != null">name = #{name},</if>
-            <if test="spaceTypeId != null">space_type_id = #{spaceTypeId},</if>
             <if test="location != null">location = #{location},</if>
             <if test="capacity != null">capacity = #{capacity},</if>
             <if test="facilities != null">facilities = #{facilities},</if>
