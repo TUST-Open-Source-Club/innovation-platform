@@ -430,9 +430,8 @@ public class CasService {
                 user.setCollegeName(college.getName());
             }
         }
-        if (dto.getRole() != null && !dto.getRole().isEmpty()) {
-            user.setRole(dto.getRole());
-        }
+        // 注意：角色由统一身份认证或注册时确定，不允许在完善资料时修改
+        // 本地注册默认为学生，CAS登录根据返回的userType确定
 
         // 标记资料已完善
         user.setIsProfileComplete(1);

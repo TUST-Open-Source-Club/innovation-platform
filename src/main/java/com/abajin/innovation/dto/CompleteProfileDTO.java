@@ -29,10 +29,7 @@ public class CompleteProfileDTO {
     @NotNull(message = "学院不能为空")
     private Long collegeId;
 
-    /**
-     * 角色
-     */
-    @NotBlank(message = "角色不能为空")
-    @Pattern(regexp = "^(STUDENT|TEACHER)$", message = "角色必须是STUDENT或TEACHER")
-    private String role;
+
+    // 注意：角色由统一身份认证或注册时确定，不允讵用户自行修改
+    // private String role;
 }

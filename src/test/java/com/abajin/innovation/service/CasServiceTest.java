@@ -295,7 +295,7 @@ class CasServiceTest {
         dto.setEmail("test@example.com");
         dto.setPhone("13800138000");
         dto.setCollegeId(1L);
-        dto.setRole(Constants.ROLE_STUDENT);
+        //dto.setRole(Constants.ROLE_STUDENT);
 
         User user = new User();
         user.setId(userId);
@@ -326,7 +326,6 @@ class CasServiceTest {
         CompleteProfileDTO dto = new CompleteProfileDTO();
         dto.setEmail("test@example.com");
         dto.setCollegeId(1L);
-        dto.setRole(Constants.ROLE_STUDENT);
 
         when(userMapper.selectById(userId)).thenReturn(null);
 
