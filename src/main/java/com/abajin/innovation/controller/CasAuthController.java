@@ -64,18 +64,31 @@ public class CasAuthController {
             return;
         }
 
+        // 获取配置并处理斜杠问题
+        String clientHostUrl = casConfig.getClientHostUrl();
+        // 移除末尾的斜杠避免重叠
+        if (clientHostUrl.endsWith("/")) {
+            clientHostUrl = clientHostUrl.substring(0, clientHostUrl.length() - 1);
+        }
+        
+        // 前端基础地址（移除 /api 后缀）
+        String frontendBaseUrl = clientHostUrl.replace("/api", "");
+        // 确保前端地址不以斜杠结尾
+        if (frontendBaseUrl.endsWith("/")) {
+            frontendBaseUrl = frontendBaseUrl.substring(0, frontendBaseUrl.length() - 1);
+        }
+
         // Mock模式：直接重定向到前端回调页面，带上mock ticket
         if (casConfig.getMockMode()) {
             String mockTicket = "MOCK-2021001-ZhangSan";
-            String redirectUrl = casConfig.getClientHostUrl().replace("/api", "") + 
-                "/cas-callback?ticket=" + mockTicket;
+            String redirectUrl = frontendBaseUrl + "/cas-callback?ticket=" + mockTicket;
             log.info("[CAS Mock] 重定向到回调页面: {}", redirectUrl);
             response.sendRedirect(redirectUrl);
             return;
         }
 
         // 构造回调地址（后端验证接口）
-        String serviceUrl = casConfig.getClientHostUrl() + "/auth/cas/validate";
+        String serviceUrl = clientHostUrl + "/auth/cas/validate";
         String encodedServiceUrl = URLEncoder.encode(serviceUrl, StandardCharsets.UTF_8);
 
         // 重定向到CAS登录页面
@@ -95,8 +108,17 @@ public class CasAuthController {
             HttpServletResponse response) throws IOException {
         log.info("[CAS] 收到ticket验证请求");
         
+        // 获取配置并处理斜杠问题
+        String clientHostUrl = casConfig.getClientHostUrl();
+        if (clientHostUrl.endsWith("/")) {
+            clientHostUrl = clientHostUrl.substring(0, clientHostUrl.length() - 1);
+        }
+        
         // 前端基础地址（移除 /api 后缀）
-        String frontendBaseUrl = casConfig.getClientHostUrl().replace("/api", "");
+        String frontendBaseUrl = clientHostUrl.replace("/api", "");
+        if (frontendBaseUrl.endsWith("/")) {
+            frontendBaseUrl = frontendBaseUrl.substring(0, frontendBaseUrl.length() - 1);
+        }
         
         try {
             if (!casService.isCasEnabled()) {

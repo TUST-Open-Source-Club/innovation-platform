@@ -91,31 +91,21 @@ public class CasAuthIntegrationTest {
 
         MvcResult result = mockMvc.perform(get("/auth/cas/validate")
                 .param("ticket", MOCK_TICKET))
-                .andExpect(status().isOk())
+                .andExpect(status().isFound()) // 302 重定向
                 .andReturn();
 
-        String content = result.getResponse().getContentAsString();
-        Result<CasLoginResponse> response = objectMapper.readValue(content, 
-                objectMapper.getTypeFactory().constructParametricType(Result.class, CasLoginResponse.class));
-        
-        assertEquals(200, response.getCode());
-        assertNotNull(response.getData());
-        
-        CasLoginResponse loginResponse = response.getData();
-        assertNotNull(loginResponse.getToken());
-        assertNotNull(loginResponse.getUser());
-        assertEquals(MOCK_UID, loginResponse.getUser().getUsername());
-        assertEquals(MOCK_NAME, loginResponse.getUser().getRealName());
-        assertEquals(Constants.AUTH_TYPE_CAS, loginResponse.getUser().getAuthType());
-        assertEquals(MOCK_UID, loginResponse.getUser().getCasUid());
-        assertEquals(Integer.valueOf(0), loginResponse.getUser().getIsProfileComplete());
-        assertTrue(loginResponse.getNeedCompleteProfile());
-        assertFalse(loginResponse.getNeedMerge());
+        // 验证重定向到完善资料页面
+        String redirectUrl = result.getResponse().getRedirectedUrl();
+        assertNotNull(redirectUrl);
+        assertTrue(redirectUrl.contains("/complete-profile"));
+        assertTrue(redirectUrl.contains("token="));
 
         // 验证用户已创建到数据库
         User dbUser = userMapper.selectByCasUid(MOCK_UID);
         assertNotNull(dbUser);
         assertEquals(MOCK_NAME, dbUser.getRealName());
+        assertEquals(Constants.AUTH_TYPE_CAS, dbUser.getAuthType());
+        assertEquals(Integer.valueOf(0), dbUser.getIsProfileComplete());
     }
 
     @Test
@@ -137,20 +127,14 @@ public class CasAuthIntegrationTest {
 
         MvcResult result = mockMvc.perform(get("/auth/cas/validate")
                 .param("ticket", MOCK_TICKET))
-                .andExpect(status().isOk())
+                .andExpect(status().isFound()) // 302 重定向
                 .andReturn();
 
-        String content = result.getResponse().getContentAsString();
-        Result<CasLoginResponse> response = objectMapper.readValue(content, 
-                objectMapper.getTypeFactory().constructParametricType(Result.class, CasLoginResponse.class));
-        
-        assertEquals(200, response.getCode());
-        CasLoginResponse loginResponse = response.getData();
-        
-        // 已存在的用户不需要完善资料
-        assertFalse(loginResponse.getNeedCompleteProfile());
-        assertFalse(loginResponse.getNeedMerge());
-        assertNotNull(loginResponse.getToken());
+        // 验证重定向到回调页面（已存在用户直接登录成功）
+        String redirectUrl = result.getResponse().getRedirectedUrl();
+        assertNotNull(redirectUrl);
+        assertTrue(redirectUrl.contains("/cas-callback"));
+        assertTrue(redirectUrl.contains("token="));
     }
 
     @Test
@@ -171,21 +155,14 @@ public class CasAuthIntegrationTest {
 
         MvcResult result = mockMvc.perform(get("/auth/cas/validate")
                 .param("ticket", MOCK_TICKET))
-                .andExpect(status().isOk())
+                .andExpect(status().isFound()) // 302 重定向
                 .andReturn();
 
-        String content = result.getResponse().getContentAsString();
-        Result<CasLoginResponse> response = objectMapper.readValue(content, 
-                objectMapper.getTypeFactory().constructParametricType(Result.class, CasLoginResponse.class));
-        
-        assertEquals(200, response.getCode());
-        CasLoginResponse loginResponse = response.getData();
-        
-        // 需要合并账号
-        assertTrue(loginResponse.getNeedMerge());
-        assertNotNull(loginResponse.getDuplicateAccount());
-        assertEquals(MOCK_NAME, loginResponse.getCasName());
-        assertEquals(MOCK_UID, loginResponse.getCasUid());
+        // 验证重定向到合并账号页面
+        String redirectUrl = result.getResponse().getRedirectedUrl();
+        assertNotNull(redirectUrl);
+        assertTrue(redirectUrl.contains("/cas-merge"));
+        assertTrue(redirectUrl.contains("data=")); // 包含合并所需数据
     }
 
     @Autowired
