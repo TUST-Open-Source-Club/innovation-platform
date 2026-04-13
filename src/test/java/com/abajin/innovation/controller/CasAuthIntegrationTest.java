@@ -270,7 +270,7 @@ public class CasAuthIntegrationTest {
         profileDTO.setEmail("test@example.com");
         profileDTO.setPhone("13800138000");
         profileDTO.setCollegeId(1L);
-        profileDTO.setRole(Constants.ROLE_STUDENT);
+        //profileDTO.setRole(Constants.ROLE_STUDENT);
 
         MvcResult result = mockMvc.perform(post("/auth/cas/complete-profile")
                 .header("Authorization", "Bearer " + token)
