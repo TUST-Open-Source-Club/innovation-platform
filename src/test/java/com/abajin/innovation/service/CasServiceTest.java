@@ -312,7 +312,7 @@ class CasServiceTest {
         assertEquals("13800138000", user.getPhone());
         assertEquals(1L, user.getCollegeId());
         assertEquals("计算机学院", user.getCollegeName());
-        assertEquals(Constants.ROLE_STUDENT, user.getRole());
+        // 角色由统一身份认证或注册时确定，不在完善资料时修改
         assertEquals(1, user.getIsProfileComplete());
         
         verify(userMapper).update(user);
