@@ -237,6 +237,7 @@ public class ActivityService {
 
     /**
      * 学校管理员终审并发布
+     * 学校管理员可以直接审核学院待审（SUBMITTED）或学院已通过（APPROVED）的活动
      */
     @Transactional
     public Activity schoolReviewAndPublish(Long activityId, String approvalStatus, String reviewComment, Long reviewerId) {
@@ -244,8 +245,10 @@ public class ActivityService {
         if (activity == null) {
             throw new RuntimeException("活动不存在");
         }
-        if (!ActivityStatus.APPROVED.name().equals(activity.getStatus())) {
-            throw new RuntimeException("只能审核学院已通过的活动");
+        // 学校管理员可以审核 SUBMITTED（学院待审）或 APPROVED（学校待审）的活动
+        if (!ActivityStatus.SUBMITTED.name().equals(activity.getStatus())
+                && !ActivityStatus.APPROVED.name().equals(activity.getStatus())) {
+            throw new RuntimeException("只能审核待审批的活动");
         }
 
         activity.setApprovalStatus(approvalStatus);

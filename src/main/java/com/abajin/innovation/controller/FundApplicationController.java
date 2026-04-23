@@ -130,7 +130,8 @@ public class FundApplicationController {
                         if (Constants.ROLE_COLLEGE_ADMIN.equals(role)) {
                             applications = fundApplicationService.getFundApplicationsByStatusAndApprovalStatus("SUBMITTED", "PENDING");
                         } else if (Constants.ROLE_SCHOOL_ADMIN.equals(role)) {
-                            applications = fundApplicationService.getFundApplicationsByStatusAndApprovalStatus("APPROVED", "PENDING");
+                            // 学校管理员查看所有待审核的申请（包括学院待审和学校待审）
+                            applications = fundApplicationService.getFundApplicationsByApprovalStatus("PENDING");
                         } else {
                             applications = List.of();
                         }

@@ -187,8 +187,14 @@ public class ActivityController {
                 activities = activityService.getActivitiesVisibleToUser(pageNum, pageSize, status, activityTypeId, keyword, userId);
                 total = (long) activityService.countActivitiesVisibleToUser(status, activityTypeId, keyword, userId);
             } else {
-                activities = activityService.getActivities(pageNum, pageSize, status, approvalStatus, activityTypeId, keyword);
-                total = (long) activityService.countActivities(status, approvalStatus, activityTypeId, keyword);
+                // 学校管理员查询待审核活动：返回所有 approvalStatus=PENDING 的（包括 SUBMITTED 和 APPROVED）
+                if ("PENDING".equals(approvalStatus) && Constants.ROLE_SCHOOL_ADMIN.equals(role)) {
+                    activities = activityService.getActivities(pageNum, pageSize, null, approvalStatus, activityTypeId, keyword);
+                    total = (long) activityService.countActivities(null, approvalStatus, activityTypeId, keyword);
+                } else {
+                    activities = activityService.getActivities(pageNum, pageSize, status, approvalStatus, activityTypeId, keyword);
+                    total = (long) activityService.countActivities(status, approvalStatus, activityTypeId, keyword);
+                }
             }
             PageResult<Activity> pageResult = PageResult.of(pageNum, pageSize, total, activities);
             return Result.success(pageResult);

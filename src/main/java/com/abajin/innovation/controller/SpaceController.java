@@ -233,4 +233,20 @@ public class SpaceController {
         }
     }
 
+    /**
+     * 更新空间基本信息（管理员）
+     * PUT /api/spaces/{id}
+     */
+    @PutMapping("/{id}")
+    @RequiresRole(value = {Constants.ROLE_COLLEGE_ADMIN, Constants.ROLE_SCHOOL_ADMIN}, allowAdmin = true)
+    public Result<Space> updateSpace(
+            @PathVariable Long id,
+            @RequestBody Space space) {
+        try {
+            Space updated = spaceReservationService.updateSpace(id, space);
+            return Result.success("空间更新成功", updated);
+        } catch (Exception e) {
+            return Result.error(e.getMessage());
+        }
+    }
 }

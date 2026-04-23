@@ -146,9 +146,7 @@ public class ProjectService {
                 project.setApprovalStatus("REJECTED");
             }
         } else {
-            if (!Constants.PROJECT_STATUS_APPROVED.equals(project.getStatus()) || !"PENDING".equals(project.getApprovalStatus())) {
-                throw new RuntimeException("只能审核学院已通过、待学校审核的项目");
-            }
+            // 学校管理员可以直接审核待学院审核的项目（bypass）
             if (Constants.PROJECT_STATUS_APPROVED.equals(status)) {
                 project.setStatus(Constants.PROJECT_STATUS_APPROVED);
                 project.setApprovalStatus("APPROVED");
@@ -178,6 +176,10 @@ public class ProjectService {
 
     public List<Project> getProjectsByStatusAndApprovalStatus(String status, String approvalStatus) {
         return projectMapper.selectByStatusAndApprovalStatus(status, approvalStatus);
+    }
+
+    public List<Project> getProjectsByApprovalStatus(String approvalStatus) {
+        return projectMapper.selectByApprovalStatus(approvalStatus);
     }
 
     public List<Project> getAllProjects() {

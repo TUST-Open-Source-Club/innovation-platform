@@ -138,10 +138,9 @@ public class FundApplicationService {
                 application.setApprovalStatus(ApprovalStatus.REJECTED.name());
             }
         } else if (com.abajin.innovation.common.Constants.ROLE_SCHOOL_ADMIN.equals(reviewerRole)) {
-            // Final stage: only college-approved applications can be reviewed by school admin
-            if (!"APPROVED".equals(application.getStatus())
-                    || !ApprovalStatus.PENDING.name().equals(application.getApprovalStatus())) {
-                throw new RuntimeException("只能审核学院已通过、待学校审核的申请");
+            // 学校管理员可以直接审核待学院审核（SUBMITTED）或学院已通过（APPROVED）的申请
+            if (!"SUBMITTED".equals(application.getStatus()) && !"APPROVED".equals(application.getStatus())) {
+                throw new RuntimeException("只能审核待审批的申请");
             }
             if (ApprovalStatus.APPROVED.equals(status)) {
                 application.setStatus("FUNDED");

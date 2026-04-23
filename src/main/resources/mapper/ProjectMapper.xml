@@ -48,6 +48,12 @@
         ORDER BY p.create_time DESC
     </select>
 
+    <select id="selectByApprovalStatus" resultMap="BaseResultMap">
+        SELECT p.*, u.phone AS leader_phone FROM project p LEFT JOIN user u ON p.leader_id = u.id
+        WHERE p.approval_status = #{approvalStatus} AND p.is_deleted = 0
+        ORDER BY p.create_time DESC
+    </select>
+
     <select id="selectAll" resultMap="BaseResultMap">
         SELECT p.*, u.phone AS leader_phone FROM project p LEFT JOIN user u ON p.leader_id = u.id WHERE p.is_deleted = 0 ORDER BY p.create_time DESC
     </select>
