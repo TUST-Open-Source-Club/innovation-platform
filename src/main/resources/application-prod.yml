@@ -30,6 +30,19 @@ spring:
       max-lifetime: 1200000
       connection-timeout: 20000
       initialization-fail-timeout: 60000
+  mail:
+    host: ${SMTP_HOST:localhost}
+    port: ${SMTP_PORT:587}
+    username: ${SMTP_USERNAME:}
+    password: ${SMTP_PASSWORD:}
+    protocol: smtp
+    default-encoding: UTF-8
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
 
 server:
   port: 8080
@@ -50,6 +63,7 @@ file:
   access:
     url: /uploads
 
+# JWT配置
 jwt:
   secret: ${JWT_SECRET:innovation-platform-secret-key-2024}
   expiration: ${JWT_EXPIRATION:86400000}
@@ -58,8 +72,15 @@ jwt:
 cas:
   enabled: ${CAS_ENABLED:false}
   server-url-prefix: ${CAS_SERVER_URL_PREFIX:http://ids.wisedu.com.cn:9086/authserver}
-  server-login-url: ${cas.server-url-prefix}/login
+  server-login-url: ${CAS_SERVER_URL_PREFIX:http://ids.wisedu.com.cn:9086/authserver}/login
+  server-logout-url: ${CAS_SERVER_URL_PREFIX:http://ids.wisedu.com.cn:9086/authserver}/logout
   client-host-url: ${CAS_CLIENT_HOST_URL:http://localhost:8080/api}
+  # CAS服务器IP白名单，用于校验单点登出回调请求来源（逗号分隔）
+  # 生产环境请填写真实CAS服务器IP，如：10.0.0.1,10.0.0.2
+  server-ips: ${CAS_SERVER_IPS:127.0.0.1,0:0:0:0:0:0:0:1}
+  # 是否启用CAS服务器IP白名单校验（默认关闭，内网环境无需校验）
+  # 如需开启，设置为 true 并配置 server-ips
+  server-ip-whitelist-enabled: ${CAS_IP_WHITELIST_ENABLED:false}
 
 # 日志配置
 logging:

@@ -325,14 +325,11 @@ class SpaceReservationServiceTest {
         // Arrange
         when(reservationMapper.selectById(1L)).thenReturn(reservation);
         when(userMapper.selectById(2L)).thenReturn(collegeAdmin);
-        when(reservationMapper.update(any(SpaceReservation.class))).thenReturn(1);
 
-        // Act
-        SpaceReservation result = spaceReservationService.reviewReservation(1L, ApprovalStatus.APPROVED.name(), "通过", 2L);
-
-        // Assert
-        assertEquals(ReservationStatus.APPROVED.name(), result.getStatus());
-        assertEquals(ApprovalStatus.PENDING.name(), result.getApprovalStatus());
+        // Act & Assert
+        RuntimeException exception = assertThrows(RuntimeException.class,
+                () -> spaceReservationService.reviewReservation(1L, ApprovalStatus.APPROVED.name(), "通过", 2L));
+        assertEquals("空间预约仅学校管理员可审批", exception.getMessage());
     }
 
     @Test
@@ -340,14 +337,11 @@ class SpaceReservationServiceTest {
         // Arrange
         when(reservationMapper.selectById(1L)).thenReturn(reservation);
         when(userMapper.selectById(2L)).thenReturn(collegeAdmin);
-        when(reservationMapper.update(any(SpaceReservation.class))).thenReturn(1);
 
-        // Act
-        SpaceReservation result = spaceReservationService.reviewReservation(1L, ApprovalStatus.REJECTED.name(), "不通过", 2L);
-
-        // Assert
-        assertEquals(ReservationStatus.REJECTED.name(), result.getStatus());
-        assertEquals(ApprovalStatus.REJECTED.name(), result.getApprovalStatus());
+        // Act & Assert
+        RuntimeException exception = assertThrows(RuntimeException.class,
+                () -> spaceReservationService.reviewReservation(1L, ApprovalStatus.REJECTED.name(), "不通过", 2L));
+        assertEquals("空间预约仅学校管理员可审批", exception.getMessage());
     }
 
     @Test
@@ -379,7 +373,7 @@ class SpaceReservationServiceTest {
         // Act & Assert
         RuntimeException exception = assertThrows(RuntimeException.class,
                 () -> spaceReservationService.reviewReservation(1L, ApprovalStatus.APPROVED.name(), "", 4L));
-        assertEquals("无权审核预约", exception.getMessage());
+        assertEquals("空间预约仅学校管理员可审批", exception.getMessage());
     }
 
     @Test
@@ -398,16 +392,12 @@ class SpaceReservationServiceTest {
 
     @Test
     void getPendingReservations_forCollegeAdmin_returnsPendingReservations() {
-        // Arrange
-        List<SpaceReservation> pendingList = Collections.singletonList(reservation);
-        when(reservationMapper.selectByStatus(ReservationStatus.PENDING.name())).thenReturn(pendingList);
-
         // Act
         List<SpaceReservation> result = spaceReservationService.getPendingReservations(Constants.ROLE_COLLEGE_ADMIN);
 
         // Assert
         assertNotNull(result);
-        assertEquals(1, result.size());
+        assertTrue(result.isEmpty());
     }
 
     @Test

@@ -497,6 +497,7 @@ class CasServiceTest {
     @DisplayName("测试IP白名单校验-合法IP")
     void testIsValidCasServerIpValid() {
         when(casConfig.getMockMode()).thenReturn(false);
+        when(casConfig.getServerIpWhitelistEnabled()).thenReturn(true);
         when(casConfig.getServerIps()).thenReturn("10.0.0.1,10.0.0.2");
 
         assertTrue(casService.isValidCasServerIp("10.0.0.1"));
@@ -507,6 +508,7 @@ class CasServiceTest {
     @DisplayName("测试IP白名单校验-非法IP")
     void testIsValidCasServerIpInvalid() {
         when(casConfig.getMockMode()).thenReturn(false);
+        when(casConfig.getServerIpWhitelistEnabled()).thenReturn(true);
         when(casConfig.getServerIps()).thenReturn("10.0.0.1");
 
         assertFalse(casService.isValidCasServerIp("192.168.1.1"));
@@ -526,8 +528,19 @@ class CasServiceTest {
     @DisplayName("测试IP白名单校验-未配置白名单")
     void testIsValidCasServerIpNoWhitelist() {
         when(casConfig.getMockMode()).thenReturn(false);
+        when(casConfig.getServerIpWhitelistEnabled()).thenReturn(true);
         when(casConfig.getServerIps()).thenReturn(null);
 
         assertFalse(casService.isValidCasServerIp("10.0.0.1"));
+    }
+
+    @Test
+    @DisplayName("测试IP白名单校验-关闭白名单校验")
+    void testIsValidCasServerIpWhitelistDisabled() {
+        when(casConfig.getMockMode()).thenReturn(false);
+        when(casConfig.getServerIpWhitelistEnabled()).thenReturn(false);
+
+        assertTrue(casService.isValidCasServerIp("192.168.1.1"));
+        assertTrue(casService.isValidCasServerIp("any-ip"));
     }
 }

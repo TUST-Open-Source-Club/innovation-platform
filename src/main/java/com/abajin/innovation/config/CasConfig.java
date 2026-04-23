@@ -53,6 +53,12 @@ public class CasConfig {
     private String serverIps;
 
     /**
+     * 是否启用CAS服务器IP白名单校验
+     * 生产环境建议开启，内网环境或无CAS服务器IP时可关闭
+     */
+    private Boolean serverIpWhitelistEnabled = true;
+
+    /**
      * 获取CAS服务器登出地址
      * 如果没有配置，则使用默认构造：serverUrlPrefix + /logout
      */
