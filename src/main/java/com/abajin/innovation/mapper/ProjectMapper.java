@@ -37,6 +37,11 @@ public interface ProjectMapper {
     List<Project> selectByStatusAndApprovalStatus(@Param("status") String status, @Param("approvalStatus") String approvalStatus);
 
     /**
+     * 根据审批状态查询项目列表
+     */
+    List<Project> selectByApprovalStatus(@Param("approvalStatus") String approvalStatus);
+
+    /**
      * 插入项目
      */
     int insert(Project project);

@@ -146,10 +146,10 @@ public class EntryApplicationService {
                 application.setApprovalStatus(ApprovalStatus.REJECTED.name());
             }
         } else if (Constants.ROLE_SCHOOL_ADMIN.equals(reviewerRole)) {
-            // 学校管理员终审：只能审核学院已通过、待学校审核的申请
-            if (!EntryStatus.APPROVED.name().equals(application.getStatus())
-                    || !ApprovalStatus.PENDING.name().equals(application.getApprovalStatus())) {
-                throw new RuntimeException("只能审核学院已通过、待学校审核的申请");
+            // 学校管理员可以直接审核待学院审核（PENDING）或学院已通过（APPROVED）的申请
+            if (!EntryStatus.PENDING.name().equals(application.getStatus())
+                    && !EntryStatus.APPROVED.name().equals(application.getStatus())) {
+                throw new RuntimeException("只能审核待审批的申请");
             }
             if (ApprovalStatus.APPROVED.equals(status)) {
                 // 终审通过后直接视为“已入驻”，并创建团队记录

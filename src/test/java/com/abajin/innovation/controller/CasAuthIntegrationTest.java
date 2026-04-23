@@ -7,6 +7,7 @@ import com.abajin.innovation.dto.CasMergeRequest;
 import com.abajin.innovation.dto.CompleteProfileDTO;
 import com.abajin.innovation.entity.User;
 import com.abajin.innovation.mapper.UserMapper;
+import com.abajin.innovation.service.CasService;
 import com.abajin.innovation.util.JwtUtil;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
@@ -15,11 +16,14 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
@@ -45,6 +49,12 @@ public class CasAuthIntegrationTest {
 
     @Autowired
     private JwtUtil jwtUtil;
+
+    @Autowired
+    private CasService casService;
+
+    @MockitoBean
+    private com.abajin.innovation.util.RedisUtil redisUtil;
 
     private static final String MOCK_TICKET = "MOCK-2021001-ZhangSan";
     private static final String MOCK_UID = "2021001";
@@ -399,5 +409,25 @@ public class CasAuthIntegrationTest {
         @SuppressWarnings("unchecked")
         java.util.List<Object> list = (java.util.List<Object>) data.get("list");
         assertEquals(1, list.size());
+    }
+
+    @Test
+    @DisplayName("测试获取CAS登出URL")
+    void testGetCasLogoutUrl() throws Exception {
+        MvcResult result = mockMvc.perform(get("/auth/cas/logout-url"))
+                .andExpect(status().isOk())
+                .andReturn();
+
+        String content = result.getResponse().getContentAsString();
+        Result<?> response = objectMapper.readValue(content, Result.class);
+
+        assertEquals(200, response.getCode());
+
+        @SuppressWarnings("unchecked")
+        Map<String, Object> data = (Map<String, Object>) response.getData();
+        assertNotNull(data);
+        assertTrue((Boolean) data.get("enabled"));
+        assertNotNull(data.get("logoutUrl"));
+        assertNotNull(data.get("fullLogoutUrl"));
     }
 }

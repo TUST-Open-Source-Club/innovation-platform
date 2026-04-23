@@ -10,20 +10,25 @@ import com.abajin.innovation.entity.User;
 import com.abajin.innovation.mapper.CollegeMapper;
 import com.abajin.innovation.mapper.UserMapper;
 import com.abajin.innovation.util.JwtUtil;
+import com.abajin.innovation.util.RedisUtil;
 import org.jasig.cas.client.authentication.AttributePrincipal;
 import org.jasig.cas.client.validation.Assertion;
 import org.jasig.cas.client.validation.Cas20ServiceTicketValidator;
 import org.jasig.cas.client.validation.TicketValidationException;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import jakarta.servlet.http.HttpServletRequest;
 
 import javax.net.ssl.*;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.security.cert.X509Certificate;
 import java.time.LocalDateTime;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -32,6 +37,7 @@ import java.util.UUID;
  * CAS统一身份认证服务
  */
 @Service
+@Slf4j
 public class CasService {
 
     @Autowired
@@ -48,6 +54,14 @@ public class CasService {
 
     @Autowired
     private PasswordEncoder passwordEncoder;
+
+    @Autowired
+    private RedisUtil redisUtil;
+
+    // Token黑名单Redis key前缀
+    private static final String TOKEN_BLACKLIST_KEY = "cas:token:blacklist";
+    // CAS用户ticket与token映射key前缀（用于单点登出时查找token）
+    private static final String CAS_TICKET_TOKEN_KEY = "cas:ticket:token";
 
     /**
      * CAS用户信息封装类
@@ -445,5 +459,175 @@ public class CasService {
      */
     public boolean isCasEnabled() {
         return casConfig.getEnabled() != null && casConfig.getEnabled();
+    }
+
+    /**
+     * 用户主动退出登录
+     * 将当前token加入黑名单，使其立即失效
+     *
+     * @param token JWT token
+     */
+    public void logout(String token) {
+        if (token != null && !token.isEmpty()) {
+            blacklistToken(token);
+            log.info("用户主动退出登录，token已加入黑名单");
+        }
+    }
+
+    /**
+     * 校验请求IP是否在CAS服务器白名单中
+     *
+     * @param ip 请求来源IP
+     * @return true 如果在白名单中或Mock模式下
+     */
+    public boolean isValidCasServerIp(String ip) {
+        // Mock模式下跳过IP校验（本地测试）
+        if (casConfig.getMockMode() != null && casConfig.getMockMode()) {
+            return true;
+        }
+
+        String serverIps = casConfig.getServerIps();
+        if (serverIps == null || serverIps.isEmpty()) {
+            log.warn("未配置CAS服务器IP白名单，拒绝单点登出请求");
+            return false;
+        }
+
+        if (ip == null || ip.isEmpty()) {
+            return false;
+        }
+
+        List<String> allowedIps = Arrays.asList(serverIps.split(","));
+        return allowedIps.stream()
+                .map(String::trim)
+                .anyMatch(allowedIp -> allowedIp.equals(ip));
+    }
+
+    /**
+     * 获取客户端真实IP地址
+     * 支持X-Forwarded-For等代理头部
+     *
+     * @param request HTTP请求
+     * @return 客户端真实IP
+     */
+    public static String getClientIp(HttpServletRequest request) {
+        String ip = request.getHeader("X-Forwarded-For");
+        if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
+            ip = request.getHeader("Proxy-Client-IP");
+        }
+        if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
+            ip = request.getHeader("WL-Proxy-Client-IP");
+        }
+        if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
+            ip = request.getHeader("HTTP_CLIENT_IP");
+        }
+        if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
+            ip = request.getHeader("HTTP_X_FORWARDED_FOR");
+        }
+        if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
+            ip = request.getRemoteAddr();
+        }
+
+        // 如果存在多个IP，取第一个
+        if (ip != null && ip.contains(",")) {
+            ip = ip.split(",")[0].trim();
+        }
+
+        return ip;
+    }
+
+    /**
+     * 存储CAS ticket与token的映射关系
+     * 用于单点登出时根据ticket找到对应的token
+     *
+     * @param ticket CAS ticket
+     * @param token  JWT token
+     */
+    public void storeTicketTokenMapping(String ticket, String token) {
+        if (ticket == null || token == null) {
+            return;
+        }
+        try {
+            // 使用ticket的hash作为key，存储token
+            String ticketHash = Integer.toHexString(ticket.hashCode());
+            // 设置过期时间为7天（CAS ticket通常有效期较短）
+            redisUtil.setNx(CAS_TICKET_TOKEN_KEY + ":" + ticketHash, token, 7L, java.util.concurrent.TimeUnit.DAYS);
+        } catch (Exception e) {
+            log.warn("存储CAS ticket映射失败: {}", e.getMessage());
+        }
+    }
+
+    /**
+     * 将token加入黑名单
+     *
+     * @param token JWT token
+     */
+    public void blacklistToken(String token) {
+        if (token == null || token.isEmpty()) {
+            return;
+        }
+        try {
+            // 获取token的过期时间
+            long expiration = jwtUtil.getExpirationDateFromToken(token).getTime();
+            long now = System.currentTimeMillis();
+            long ttl = expiration - now;
+            
+            if (ttl > 0) {
+                // 使用token的hash作为key，存储到Redis，过期时间为token剩余有效期
+                String tokenHash = Integer.toHexString(token.hashCode());
+                redisUtil.setNx(TOKEN_BLACKLIST_KEY + ":" + tokenHash, "1", ttl, java.util.concurrent.TimeUnit.MILLISECONDS);
+                log.info("Token已加入黑名单，剩余有效期: {}ms", ttl);
+            }
+        } catch (Exception e) {
+            log.warn("Token加入黑名单失败: {}", e.getMessage());
+        }
+    }
+
+    /**
+     * 检查token是否在黑名单中
+     *
+     * @param token JWT token
+     * @return true 如果在黑名单中
+     */
+    public boolean isTokenBlacklisted(String token) {
+        if (token == null || token.isEmpty()) {
+            return false;
+        }
+        try {
+            String tokenHash = Integer.toHexString(token.hashCode());
+            return redisUtil.exist(TOKEN_BLACKLIST_KEY + ":" + tokenHash);
+        } catch (Exception e) {
+            log.warn("检查Token黑名单失败: {}", e.getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * 处理CAS单点登出
+     * 根据ticket找到对应的token并加入黑名单
+     *
+     * @param ticket CAS ticket
+     */
+    public void processCasLogout(String ticket) {
+        if (ticket == null || ticket.isEmpty()) {
+            log.warn("CAS单点登出失败：ticket为空");
+            return;
+        }
+        
+        try {
+            String ticketHash = Integer.toHexString(ticket.hashCode());
+            String token = redisUtil.get(CAS_TICKET_TOKEN_KEY + ":" + ticketHash);
+            
+            if (token != null && !token.isEmpty()) {
+                // 将token加入黑名单
+                blacklistToken(token);
+                // 删除映射关系
+                redisUtil.del(CAS_TICKET_TOKEN_KEY + ":" + ticketHash);
+                log.info("CAS单点登出成功，token已加入黑名单");
+            } else {
+                log.warn("CAS单点登出：未找到ticket对应的token，ticketHash={}", ticketHash);
+            }
+        } catch (Exception e) {
+            log.error("CAS单点登出处理失败: {}", e.getMessage(), e);
+        }
     }
 }

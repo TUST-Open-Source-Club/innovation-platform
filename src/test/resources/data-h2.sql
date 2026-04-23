@@ -1,5 +1,9 @@
 -- H2 Test Database Data
 
+-- 清空已有数据（避免多Spring上下文共享H2内存数据库时主键冲突）
+TRUNCATE TABLE college;
+TRUNCATE TABLE user;
+
 -- 插入测试学院数据
 INSERT INTO college (id, name, code, description) VALUES 
 (1, '计算机学院', 'CS', '计算机科学与技术学院'),

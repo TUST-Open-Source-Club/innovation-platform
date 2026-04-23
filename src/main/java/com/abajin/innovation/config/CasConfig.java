@@ -27,6 +27,11 @@ public class CasConfig {
     private String serverLoginUrl;
 
     /**
+     * CAS服务器登出地址
+     */
+    private String serverLogoutUrl;
+
+    /**
      * 本应用地址
      */
     private String clientHostUrl;
@@ -40,4 +45,24 @@ public class CasConfig {
      * 忽略SSL证书验证（仅用于测试环境，生产环境请导入正确证书）
      */
     private Boolean ignoreSslValidation = false;
+
+    /**
+     * CAS服务器IP白名单（逗号分隔），用于校验单点登出回调请求的来源
+     * 例如：10.0.0.1,10.0.0.2
+     */
+    private String serverIps;
+
+    /**
+     * 获取CAS服务器登出地址
+     * 如果没有配置，则使用默认构造：serverUrlPrefix + /logout
+     */
+    public String getServerLogoutUrl() {
+        if (serverLogoutUrl != null && !serverLogoutUrl.isEmpty()) {
+            return serverLogoutUrl;
+        }
+        if (serverUrlPrefix != null && !serverUrlPrefix.isEmpty()) {
+            return serverUrlPrefix + "/logout";
+        }
+        return null;
+    }
 }

@@ -108,7 +108,8 @@ public class ProjectController {
                     if (Constants.ROLE_COLLEGE_ADMIN.equals(role)) {
                         projects = projectService.getProjectsByStatusAndApprovalStatus("PENDING", "PENDING");
                     } else {
-                        projects = projectService.getProjectsByStatusAndApprovalStatus("APPROVED", "PENDING");
+                        // 学校管理员：查看所有待审核的项目（status=PENDING 或 status=APPROVED 且 approvalStatus=PENDING）
+                        projects = projectService.getProjectsByApprovalStatus("PENDING");
                     }
                 } else {
                     projects = projectService.getProjectsByStatus(status);

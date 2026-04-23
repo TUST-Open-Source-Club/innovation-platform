@@ -8,13 +8,25 @@ import com.abajin.innovation.dto.CompleteProfileDTO;
 import com.abajin.innovation.dto.LoginUserDTO;
 import com.abajin.innovation.service.CasService;
 import com.abajin.innovation.util.JwtUtil;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 
+import jakarta.xml.bind.DatatypeConverter;
+import org.springframework.web.bind.annotation.*;
+import org.w3c.dom.Document;
+import org.w3c.dom.NodeList;
+import org.xml.sax.InputSource;
+
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
 import java.io.IOException;
+import java.io.StringReader;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
@@ -132,6 +144,11 @@ public class CasAuthController {
 
             // 验证ticket并处理登录
             CasLoginResponse casResponse = casService.validateTicketAndLogin(ticket, serviceUrl);
+            
+            // 存储ticket与token的映射关系（用于单点登出）
+            if (casResponse.getToken() != null) {
+                casService.storeTicketTokenMapping(ticket, casResponse.getToken());
+            }
             
             // 处理需要合并账号的情况
             if (casResponse.getNeedMerge() != null && casResponse.getNeedMerge()) {
@@ -321,16 +338,140 @@ public class CasAuthController {
 
     /**
      * CAS单点登出回调
-     * CAS服务器在用户登出时会调用此接口
+     * CAS服务器在用户登出时会发送SAML格式的logout请求到此接口
+     * 根据CAS协议，单点登出请求是POST方式，Content-Type为application/x-www-form-urlencoded
+     * 参数名为 logoutRequest，内容是SAML格式的XML
      */
-    @PostMapping("/logout")
-    public Result<Void> casLogout(@RequestBody(required = false) Map<String, String> body) {
+    @PostMapping(value = "/logout", consumes = MediaType.APPLICATION_FORM_URLENCODED_VALUE)
+    public ResponseEntity<Void> casLogout(
+            @RequestParam(value = "logoutRequest", required = false) String logoutRequest,
+            HttpServletRequest request) {
         log.info("[CAS] 收到单点登出请求");
+
+        // IP白名单校验（Mock模式下跳过）
+        String clientIp = CasService.getClientIp(request);
+        if (!casService.isValidCasServerIp(clientIp)) {
+            log.warn("[CAS] 单点登出请求来源IP不在白名单中，拒绝处理: {}", clientIp);
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
+
+        if (logoutRequest == null || logoutRequest.isEmpty()) {
+            log.warn("[CAS] 单点登出请求内容为空");
+            return ResponseEntity.ok().build();
+        }
+
         try {
-            return Result.success("登出成功", null);
+            // 解析SAML logout请求，提取ticket（SessionIndex）
+            String ticket = extractSessionIndexFromSaml(logoutRequest);
+
+            if (ticket != null && !ticket.isEmpty()) {
+                log.info("[CAS] 处理单点登出，ticket: {}", ticket);
+                casService.processCasLogout(ticket);
+            } else {
+                log.warn("[CAS] 无法从SAML请求中提取SessionIndex");
+            }
         } catch (Exception e) {
-            log.error("[CAS] 登出处理失败: {}", e.getMessage());
-            return Result.error("登出失败: " + e.getMessage());
+            log.error("[CAS] 单点登出处理失败: {}", e.getMessage(), e);
+        }
+
+        return ResponseEntity.ok().build();
+    }
+
+    /**
+     * 从SAML logout请求中提取SessionIndex（即ticket）
+     *
+     * @param logoutRequest SAML格式的logout请求
+     * @return SessionIndex/ticket
+     */
+    private String extractSessionIndexFromSaml(String logoutRequest) {
+        try {
+            // CAS服务器的SAML logout请求格式示例：
+            // <samlp:LogoutRequest>
+            //   <samlp:SessionIndex>ST-xxx-xxx</samlp:SessionIndex>
+            // </samlp:LogoutRequest>
+            
+            // 首先尝试直接提取SessionIndex内容
+            String sessionIndexPattern = "<.*?SessionIndex>(.*?)</.*?SessionIndex>";
+            java.util.regex.Pattern pattern = java.util.regex.Pattern.compile(sessionIndexPattern, java.util.regex.Pattern.DOTALL);
+            java.util.regex.Matcher matcher = pattern.matcher(logoutRequest);
+            
+            if (matcher.find()) {
+                return matcher.group(1).trim();
+            }
+            
+            // 如果上面的方法失败，尝试使用XML解析器
+            DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+            factory.setNamespaceAware(true);
+            DocumentBuilder builder = factory.newDocumentBuilder();
+            Document doc = builder.parse(new InputSource(new StringReader(logoutRequest)));
+            
+            NodeList nodeList = doc.getElementsByTagName("SessionIndex");
+            if (nodeList.getLength() > 0) {
+                return nodeList.item(0).getTextContent();
+            }
+            
+            // 尝试带命名空间的查找
+            nodeList = doc.getElementsByTagNameNS("*", "SessionIndex");
+            if (nodeList.getLength() > 0) {
+                return nodeList.item(0).getTextContent();
+            }
+            
+        } catch (Exception e) {
+            log.warn("[CAS] 解析SAML logout请求失败: {}", e.getMessage());
+        }
+        
+        return null;
+    }
+
+    /**
+     * 获取CAS退出登录地址
+     * 前端调用此接口获取CAS服务器的登出地址
+     */
+    @GetMapping("/logout-url")
+    public Result<Map<String, Object>> getLogoutUrl() {
+        Map<String, Object> data = new HashMap<>();
+        
+        boolean enabled = casService.isCasEnabled();
+        data.put("enabled", enabled);
+        
+        if (enabled) {
+            String logoutUrl = casConfig.getServerLogoutUrl();
+            data.put("logoutUrl", logoutUrl);
+            
+            // 构建完整登出地址（包含service参数，登出后跳转回应用）
+            if (logoutUrl != null && !logoutUrl.isEmpty()) {
+                String clientHostUrl = casConfig.getClientHostUrl();
+                if (clientHostUrl != null) {
+                    // 移除 /api 后缀，获取前端地址
+                    String frontendUrl = clientHostUrl.replace("/api", "");
+                    if (frontendUrl.endsWith("/")) {
+                        frontendUrl = frontendUrl.substring(0, frontendUrl.length() - 1);
+                    }
+                    String fullLogoutUrl = logoutUrl + "?service=" + URLEncoder.encode(frontendUrl + "/login", StandardCharsets.UTF_8);
+                    data.put("fullLogoutUrl", fullLogoutUrl);
+                }
+            }
+        }
+        
+        return Result.success(data);
+    }
+
+    /**
+     * CAS用户主动退出登录
+     * 前端调用此接口将当前token加入黑名单，然后再跳转到CAS服务器登出页面
+     */
+    @PostMapping("/user-logout")
+    public Result<String> userLogout(@RequestHeader("Authorization") String authHeader) {
+        try {
+            if (authHeader != null && authHeader.startsWith("Bearer ")) {
+                String token = authHeader.substring(7);
+                casService.logout(token);
+                return Result.success("退出登录成功");
+            }
+            return Result.error("无效的认证信息");
+        } catch (Exception e) {
+            log.error("[CAS] 用户主动退出失败: {}", e.getMessage(), e);
+            return Result.error("退出登录失败: " + e.getMessage());
         }
     }
 }

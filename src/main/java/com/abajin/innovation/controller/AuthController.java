@@ -6,6 +6,7 @@ import com.abajin.innovation.dto.LoginDTO;
 import com.abajin.innovation.dto.LoginUserDTO;
 import com.abajin.innovation.dto.RegisterDTO;
 import com.abajin.innovation.entity.User;
+import com.abajin.innovation.service.CasService;
 import com.abajin.innovation.service.UserService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -19,6 +20,9 @@ import java.util.Map;
 public class AuthController {
     @Autowired
     private UserService userService;
+
+    @Autowired
+    private CasService casService;
 
     @PostMapping("/login")
     public Result<Map<String, Object>> login(@Valid @RequestBody LoginDTO loginDTO) {
@@ -44,6 +48,24 @@ public class AuthController {
             return Result.success("注册成功", user);
         } catch (Exception e) {
             return Result.error(e.getMessage());
+        }
+    }
+
+    /**
+     * 用户主动退出登录
+     * 将当前token加入黑名单，使其立即失效
+     */
+    @PostMapping("/logout")
+    public Result<String> logout(@RequestHeader("Authorization") String authHeader) {
+        try {
+            if (authHeader != null && authHeader.startsWith("Bearer ")) {
+                String token = authHeader.substring(7);
+                casService.logout(token);
+                return Result.success("退出登录成功");
+            }
+            return Result.error("无效的认证信息");
+        } catch (Exception e) {
+            return Result.error("退出登录失败: " + e.getMessage());
         }
     }
 }

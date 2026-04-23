@@ -67,4 +67,15 @@ public class JwtUtil {
         Claims claims = parseToken(token);
         return claims.getSubject(); // subject 存储的是 username
     }
+
+    /**
+     * 获取token的过期时间
+     *
+     * @param token JWT token
+     * @return 过期时间
+     */
+    public Date getExpirationDateFromToken(String token) {
+        Claims claims = parseToken(token);
+        return claims.getExpiration();
+    }
 }

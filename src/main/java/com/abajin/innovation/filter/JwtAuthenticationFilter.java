@@ -1,5 +1,6 @@
 package com.abajin.innovation.filter;
 
+import com.abajin.innovation.service.CasService;
 import com.abajin.innovation.util.JwtUtil;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -25,6 +26,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     @Autowired
     private UserDetailsService userDetailsService;
 
+    @Autowired(required = false)
+    private CasService casService;
+
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {
@@ -34,6 +38,13 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             String token = authHeader.substring(7);
 
             if (jwtUtil.validateToken(token)) {
+                // 检查token是否在黑名单中（CAS单点登出）
+                if (casService != null && casService.isTokenBlacklisted(token)) {
+                    logger.debug("Token已在黑名单中，拒绝访问");
+                    filterChain.doFilter(request, response);
+                    return;
+                }
+                
                 String username = jwtUtil.getUsernameFromToken(token);
 
                 if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {

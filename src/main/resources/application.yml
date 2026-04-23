@@ -61,7 +61,11 @@ cas:
   mock-mode: true  # Mock模式，只用于本地测试（无需真实CAS服务器）
   server-url-prefix: http://ids.wisedu.com.cn:9086/authserver #写学校的CAS服务器地址
   server-login-url: ${cas.server-url-prefix}/login
+  server-logout-url: ${cas.server-url-prefix}/logout  # CAS服务器登出地址
   client-host-url: http://localhost:8080/api
+  # CAS服务器IP白名单，用于校验单点登出回调请求来源（逗号分隔）
+  # 生产环境请填写真实CAS服务器IP，如：10.0.0.1,10.0.0.2
+  server-ips: 127.0.0.1,0:0:0:0:0:0:0:1
 
 # 文件上传路径
 #file:
