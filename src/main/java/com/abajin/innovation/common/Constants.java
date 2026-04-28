@@ -11,6 +11,7 @@ public class Constants {
     // 用户角色
     public static final String ROLE_STUDENT = "STUDENT";
     public static final String ROLE_TEACHER = "TEACHER";
+    public static final String ROLE_STUDENT_ADMIN = "STUDENT_ADMIN";
     public static final String ROLE_COLLEGE_ADMIN = "COLLEGE_ADMIN";
     public static final String ROLE_SCHOOL_ADMIN = "SCHOOL_ADMIN";
 

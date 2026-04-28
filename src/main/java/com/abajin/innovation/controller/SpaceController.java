@@ -162,7 +162,7 @@ public class SpaceController {
      * POST /api/spaces/reservations/{id}/review
      */
     @PostMapping("/reservations/{id}/review")
-    @RequiresRole(value = {Constants.ROLE_COLLEGE_ADMIN, Constants.ROLE_SCHOOL_ADMIN}, allowAdmin = true)
+    @RequiresRole(value = {Constants.ROLE_STUDENT_ADMIN, Constants.ROLE_COLLEGE_ADMIN, Constants.ROLE_SCHOOL_ADMIN}, allowAdmin = true)
     public Result<SpaceReservation> reviewReservation(
             @PathVariable Long id,
             @RequestBody Map<String, String> reviewData,
@@ -189,7 +189,7 @@ public class SpaceController {
      * GET /api/spaces/reservations/pending
      */
     @GetMapping("/reservations/pending")
-    @RequiresRole(value = {Constants.ROLE_COLLEGE_ADMIN, Constants.ROLE_SCHOOL_ADMIN}, allowAdmin = true)
+    @RequiresRole(value = {Constants.ROLE_STUDENT_ADMIN, Constants.ROLE_COLLEGE_ADMIN, Constants.ROLE_SCHOOL_ADMIN}, allowAdmin = true)
     public Result<List<SpaceReservation>> getPendingReservations(@RequestAttribute(value = "role", required = false) String role) {
         try {
             List<SpaceReservation> reservations = spaceReservationService.getPendingReservations(role);
@@ -208,6 +208,7 @@ public class SpaceController {
             value = {
                     Constants.ROLE_STUDENT,
                     Constants.ROLE_TEACHER,
+                    Constants.ROLE_STUDENT_ADMIN,
                     Constants.ROLE_COLLEGE_ADMIN,
                     Constants.ROLE_SCHOOL_ADMIN
             },
