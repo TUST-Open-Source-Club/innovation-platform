@@ -351,7 +351,6 @@ class SpaceReservationServiceTest {
         reservation.setApprovalStatus(ApprovalStatus.PENDING.name());
         when(reservationMapper.selectById(1L)).thenReturn(reservation);
         when(userMapper.selectById(3L)).thenReturn(schoolAdmin);
-        when(reservationMapper.update(any(SpaceReservation.class))).thenReturn(1);
 
         // Act
         SpaceReservation result = spaceReservationService.reviewReservation(1L, ApprovalStatus.APPROVED.name(), "终审通过", 3L);
