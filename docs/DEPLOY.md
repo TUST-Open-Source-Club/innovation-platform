@@ -106,6 +106,16 @@ CAS_SERVER_URL_PREFIX=http://ids.wisedu.com.cn:9086/authserver
 CAS_SERVER_LOGIN_URL=http://ids.wisedu.com.cn:9086/authserver/login
 # 本应用公网访问地址（CAS回调用）
 CAS_CLIENT_HOST_URL=http://your-domain.com/api
+# CAS服务器IP白名单校验（可选，默认关闭）
+CAS_IP_WHITELIST_ENABLED=false
+# CAS服务器IP白名单（逗号分隔，开启白名单时必填）
+# CAS_SERVER_IPS=10.0.0.1,10.0.0.2
+
+# SMTP邮件配置（可选）
+# SMTP_HOST=smtp.qq.com
+# SMTP_PORT=587
+# SMTP_USERNAME=your-email@qq.com
+# SMTP_PASSWORD=your-smtp-password
 EOF
 ```
 
@@ -369,6 +379,17 @@ CAS_MOCK_MODE=true                    # 开启Mock模式，无需真实CAS服务
 CAS_CLIENT_HOST_URL=http://localhost:8080/api
 ```
 
+### CAS单点登出回调URL
+
+在学校的CAS服务器注册本应用时，需要填写两个回调地址：
+
+| 回调类型 | URL | 说明 |
+|---------|-----|------|
+| Service URL | `https://your-domain.com/api/auth/cas/validate` | 用于ticket验证 |
+| Logout Callback URL | `https://your-domain.com/api/auth/cas/logout` | 用于单点登出 |
+
+> 如果学校的CAS服务器不支持单独配置logout回调地址，请统一将Service URL配置为 `/auth/cas/logout`，然后告诉我，我会相应调整validate端点路由。
+
 ### 11.3 切换方法
 
 #### 切换到CAS统一认证
@@ -416,7 +437,68 @@ docker compose restart backend
 - **检测到同名账号**：提示用户合并账号或创建新账号
 - **未检测到同名账号**：自动创建新账号，并提示完善资料
 
-## 12. 项目目录结构
+## 12. SMTP邮件提醒配置（可选）
+
+系统支持通过SMTP发送审批提醒邮件，有新的审批提交或审批结果时自动通知相关人员。
+
+### 12.1 配置说明
+
+在 `.env` 文件中添加 SMTP 配置：
+
+```bash
+# SMTP服务器配置
+SMTP_HOST=smtp.qq.com                # SMTP服务器地址
+SMTP_PORT=587                        # SMTP端口（常见：25/465/587）
+SMTP_USERNAME=your-email@qq.com      # 发件邮箱账号
+SMTP_PASSWORD=your-smtp-password     # 发件邮箱密码/授权码
+```
+
+### 12.2 支持的SMTP服务商
+
+| 服务商 | SMTP_HOST | 端口 | 说明 |
+|--------|-----------|------|------|
+| QQ邮箱 | smtp.qq.com | 587 | 使用授权码代替密码 |
+| 163邮箱 | smtp.163.com | 587 | 使用授权码代替密码 |
+| Gmail | smtp.gmail.com | 587 | 使用应用专用密码 |
+| 企业邮箱 | smtp.exmail.qq.com | 465 | 腾讯企业邮 |
+| Outlook | smtp.office365.com | 587 | 使用应用密码 |
+
+> **提示**：管理员用户的 `email` 字段需要正确填写，否则无法收到邮件通知。
+
+### 12.3 邮件触发场景
+
+| 操作 | 通知对象 | 邮件内容 |
+|------|---------|---------|
+| 项目/活动/基金/入驻提交 | 学院管理员 | 新的待审批项 |
+| 学院审批通过 | 学校管理员 | 等待终审 |
+| 终审通过/驳回 | 申请人 | 审批结果 |
+| 新闻稿提交 | 学校管理员 | 新的待审批项 |
+| 空间预约创建 | 学校管理员 | 新的空间预约 |
+| 空间预约审批 | 申请人 | 审批结果 |
+
+## 13. CAS服务器IP白名单配置（可选）
+
+单点登出时，后端会校验请求来源IP是否为CAS服务器。内网环境或无CAS服务器IP时可关闭此校验。
+
+### 13.1 配置说明
+
+```bash
+# 关闭IP白名单校验（推荐内网环境）
+CAS_IP_WHITELIST_ENABLED=false
+
+# 如需开启，设为true并配置CAS服务器IP
+CAS_IP_WHITELIST_ENABLED=true
+CAS_SERVER_IPS=10.0.0.1,10.0.0.2
+```
+
+### 13.2 建议
+
+| 场景 | 建议配置 |
+|------|---------|
+| 内网部署、无CAS服务器IP | `CAS_IP_WHITELIST_ENABLED=false` |
+| 公网部署、有CAS服务器IP | `CAS_IP_WHITELIST_ENABLED=true` + 配置 `CAS_SERVER_IPS` |
+
+## 14. 项目目录结构
 
 ```
 innovation-backend/
@@ -473,7 +555,7 @@ innovation-backend/
 └── ...
 ```
 
-## 13. 相关命令速查
+## 15. 相关命令速查
 
 ```bash
 # ========== 部署 ==========
@@ -500,7 +582,7 @@ git submodule update --remote           # 更新子模块到最新
 git submodule update --remote --merge   # 更新并合并
 ```
 
-## 14. 更新 CD 配置
+## 16. 更新 CD 配置
 
 如需修改定时触发时间，编辑 `.github/workflows/cd.yml`：
 

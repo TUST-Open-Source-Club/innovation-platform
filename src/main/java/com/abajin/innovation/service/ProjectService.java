@@ -28,6 +28,9 @@ public class ProjectService {
     @Autowired
     private TeamMemberMapper teamMemberMapper;
 
+    @Autowired
+    private EmailService emailService;
+
     @Transactional
     public Project createProject(Project project, Long leaderId) {
         User leader = userMapper.selectById(leaderId);
@@ -103,6 +106,10 @@ public class ProjectService {
         project.setApprovalStatus("PENDING");
         project.setUpdateTime(LocalDateTime.now());
         projectMapper.update(project);
+
+        if (emailService != null) {
+            emailService.notifyCollegeAdmins("项目", project.getTitle());
+        }
         return project;
     }
 
@@ -134,6 +141,7 @@ public class ProjectService {
         project.setReviewerId(reviewerId);
         project.setReviewTime(LocalDateTime.now());
 
+        boolean isFinal = false;
         if (Constants.ROLE_COLLEGE_ADMIN.equals(reviewerRole)) {
             if (!Constants.PROJECT_STATUS_PENDING.equals(project.getStatus())) {
                 throw new RuntimeException("只能审核待学院审核的项目");
@@ -141,9 +149,14 @@ public class ProjectService {
             if (Constants.PROJECT_STATUS_APPROVED.equals(status)) {
                 project.setStatus(Constants.PROJECT_STATUS_APPROVED);
                 project.setApprovalStatus("PENDING");
+                // 通知学校管理员有新的终审待审项
+                if (emailService != null) {
+                    emailService.notifySchoolAdminsAfterCollegeApproval("项目", project.getTitle());
+                }
             } else {
                 project.setStatus(Constants.PROJECT_STATUS_REJECTED);
                 project.setApprovalStatus("REJECTED");
+                isFinal = true;
             }
         } else {
             // 学校管理员可以直接审核待学院审核的项目（bypass）
@@ -155,10 +168,18 @@ public class ProjectService {
                 project.setStatus(Constants.PROJECT_STATUS_REJECTED);
                 project.setApprovalStatus("REJECTED");
             }
+            isFinal = true;
         }
 
         project.setUpdateTime(LocalDateTime.now());
         projectMapper.update(project);
+
+        if (isFinal) {
+            if (emailService != null) {
+                emailService.notifyApplicant(project.getLeaderId(), "项目", project.getTitle(),
+                        Constants.PROJECT_STATUS_APPROVED.equals(project.getStatus()), reviewComment);
+            }
+        }
         return project;
     }
 

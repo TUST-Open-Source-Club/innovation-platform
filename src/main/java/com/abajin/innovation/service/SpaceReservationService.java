@@ -39,6 +39,9 @@ public class SpaceReservationService {
     @Autowired
     private UserMapper userMapper;
 
+    @Autowired
+    private EmailService emailService;
+
     /**
      * 查询所有可用空间
      */
@@ -204,6 +207,22 @@ public class SpaceReservationService {
         reservation.setUpdateTime(LocalDateTime.now());
 
         reservationMapper.insert(reservation);
+
+        // 通知学校管理员有新的空间预约
+        String spaceName = reservation.getCustomSpaceName();
+        if (spaceName == null || spaceName.isBlank()) {
+            Space space = spaceMapper.selectById(reservation.getSpaceId());
+            if (space != null) {
+                spaceName = space.getName();
+            } else {
+                spaceName = "未知空间";
+            }
+        }
+        if (emailService != null) {
+            emailService.notifySchoolAdmins("空间预约",
+                    spaceName + " " + reservation.getReservationDate() + " " + reservation.getStartTime() + "-" + reservation.getEndTime());
+        }
+
         return reservation;
     }
 
@@ -229,7 +248,7 @@ public class SpaceReservationService {
     }
 
     /**
-     * 审核预约申请
+     * 审核预约申请（仅学校管理员可审批，空间预约跳过学院审批）
      */
     @Transactional
     public SpaceReservation reviewReservation(Long reservationId, String approvalStatus, String reviewComment, Long reviewerId) {
@@ -237,12 +256,15 @@ public class SpaceReservationService {
         if (reservation == null) {
             throw new RuntimeException("预约不存在");
         }
-        // reviewer role: COLLEGE_ADMIN -> first review; SCHOOL_ADMIN -> final review
         User reviewer = userMapper.selectById(reviewerId);
         if (reviewer == null) {
             throw new RuntimeException("审核人不存在");
         }
         String reviewerRole = reviewer.getRole();
+
+        if (!com.abajin.innovation.common.Constants.ROLE_SCHOOL_ADMIN.equals(reviewerRole)) {
+            throw new RuntimeException("空间预约仅学校管理员可审批");
+        }
 
         ApprovalStatus status;
         try {
@@ -254,7 +276,6 @@ public class SpaceReservationService {
             throw new RuntimeException("审核操作只能设置为 APPROVED 或 REJECTED");
         }
 
-        // Only allow review when current approvalStatus is PENDING
         if (!ApprovalStatus.PENDING.name().equals(reservation.getApprovalStatus())) {
             throw new RuntimeException("该预约已审核，不能重复审核");
         }
@@ -263,50 +284,33 @@ public class SpaceReservationService {
         reservation.setReviewerId(reviewerId);
         reservation.setReviewTime(LocalDateTime.now());
 
-        if (com.abajin.innovation.common.Constants.ROLE_COLLEGE_ADMIN.equals(reviewerRole)) {
-            // First stage: only PENDING reservations can be reviewed by college admin
-            if (!ReservationStatus.PENDING.name().equals(reservation.getStatus())) {
-                throw new RuntimeException("只能审核待学院审核的预约");
-            }
-            if (ApprovalStatus.APPROVED.equals(status)) {
-                // College approved -> waiting for school review
-                reservation.setStatus(ReservationStatus.APPROVED.name());
-                reservation.setApprovalStatus(ApprovalStatus.PENDING.name());
-            } else {
-                reservation.setStatus(ReservationStatus.REJECTED.name());
-                reservation.setApprovalStatus(ApprovalStatus.REJECTED.name());
-            }
-        } else if (com.abajin.innovation.common.Constants.ROLE_SCHOOL_ADMIN.equals(reviewerRole)) {
-            // School admin can review both college-pending and school-pending reservations
-            if (ReservationStatus.PENDING.name().equals(reservation.getStatus())
-                    && ApprovalStatus.PENDING.name().equals(reservation.getApprovalStatus())) {
-                // Direct review: school admin bypasses college review
-                if (ApprovalStatus.APPROVED.equals(status)) {
-                    reservation.setStatus(ReservationStatus.APPROVED.name());
-                    reservation.setApprovalStatus(ApprovalStatus.APPROVED.name());
-                } else {
-                    reservation.setStatus(ReservationStatus.REJECTED.name());
-                    reservation.setApprovalStatus(ApprovalStatus.REJECTED.name());
-                }
-            } else if (ReservationStatus.APPROVED.name().equals(reservation.getStatus())
-                    && ApprovalStatus.PENDING.name().equals(reservation.getApprovalStatus())) {
-                // Final review: college already approved
-                if (ApprovalStatus.APPROVED.equals(status)) {
-                    reservation.setStatus(ReservationStatus.APPROVED.name());
-                    reservation.setApprovalStatus(ApprovalStatus.APPROVED.name());
-                } else {
-                    reservation.setStatus(ReservationStatus.REJECTED.name());
-                    reservation.setApprovalStatus(ApprovalStatus.REJECTED.name());
-                }
-            } else {
-                throw new RuntimeException("只能审核待审批的预约");
-            }
+        if (ApprovalStatus.APPROVED.equals(status)) {
+            reservation.setStatus(ReservationStatus.APPROVED.name());
+            reservation.setApprovalStatus(ApprovalStatus.APPROVED.name());
         } else {
-            throw new RuntimeException("无权审核预约");
+            reservation.setStatus(ReservationStatus.REJECTED.name());
+            reservation.setApprovalStatus(ApprovalStatus.REJECTED.name());
         }
 
         reservation.setUpdateTime(LocalDateTime.now());
         reservationMapper.update(reservation);
+
+        // 通知申请人审批结果
+        String spaceName = reservation.getCustomSpaceName();
+        if (spaceName == null || spaceName.isBlank()) {
+            Space space = spaceMapper.selectById(reservation.getSpaceId());
+            if (space != null) {
+                spaceName = space.getName();
+            } else {
+                spaceName = "未知空间";
+            }
+        }
+        if (emailService != null) {
+            emailService.notifyApplicant(reservation.getApplicantId(), "空间预约",
+                    spaceName + " " + reservation.getReservationDate() + " " + reservation.getStartTime() + "-" + reservation.getEndTime(),
+                    ApprovalStatus.APPROVED.equals(status), reviewComment);
+        }
+
         return reservation;
     }
 
@@ -319,22 +323,16 @@ public class SpaceReservationService {
 
     /**
      * 查询待审核的预约列表（管理员）
-     * 学院管理员：查看待学院审核（status=PENDING）
-     * 学校管理员：查看所有待审核（status=PENDING 或 status=APPROVED且approvalStatus=PENDING）
+     * 空间预约跳过学院审批，仅学校管理员可查看和审批
      */
     public List<SpaceReservation> getPendingReservations(String role) {
-        // College admin: reservations waiting for college review
+        // 空间预约不经过学院审批
         if (com.abajin.innovation.common.Constants.ROLE_COLLEGE_ADMIN.equals(role)) {
-            return reservationMapper.selectByStatus(ReservationStatus.PENDING.name());
+            return List.of();
         }
-        // School admin: can see both college-pending and school-pending reservations
+        // School admin: 查看所有待审核的预约
         if (com.abajin.innovation.common.Constants.ROLE_SCHOOL_ADMIN.equals(role)) {
-            List<SpaceReservation> allPending = reservationMapper.selectByStatus(ReservationStatus.PENDING.name());
-            List<SpaceReservation> schoolPending = reservationMapper.selectByStatus(ReservationStatus.APPROVED.name()).stream()
-                    .filter(r -> ApprovalStatus.PENDING.name().equals(r.getApprovalStatus()))
-                    .toList();
-            allPending.addAll(schoolPending);
-            return allPending;
+            return reservationMapper.selectByStatus(ReservationStatus.PENDING.name());
         }
         return List.of();
     }

@@ -29,6 +29,9 @@ public class EntryApplicationService {
     @Autowired
     private TeamService teamService;
 
+    @Autowired
+    private EmailService emailService;
+
     /**
      * 创建入驻申请（草稿状态）
      */
@@ -93,6 +96,10 @@ public class EntryApplicationService {
         application.setApprovalStatus(ApprovalStatus.PENDING.name());
         application.setUpdateTime(LocalDateTime.now());
         entryApplicationMapper.update(application);
+
+        if (emailService != null) {
+            emailService.notifyCollegeAdmins("入驻申请", application.getTeamName());
+        }
         return application;
     }
 
@@ -132,6 +139,7 @@ public class EntryApplicationService {
         application.setReviewerId(reviewerId);
         application.setReviewTime(LocalDateTime.now());
 
+        boolean isFinal = false;
         if (Constants.ROLE_COLLEGE_ADMIN.equals(reviewerRole)) {
             // 学院管理员初审：只能审核待学院审核的申请
             if (!EntryStatus.PENDING.name().equals(application.getStatus())) {
@@ -141,9 +149,13 @@ public class EntryApplicationService {
                 // 学院通过，等待学校终审
                 application.setStatus(EntryStatus.APPROVED.name());
                 application.setApprovalStatus(ApprovalStatus.PENDING.name());
+                if (emailService != null) {
+                    emailService.notifySchoolAdminsAfterCollegeApproval("入驻申请", application.getTeamName());
+                }
             } else {
                 application.setStatus(EntryStatus.REJECTED.name());
                 application.setApprovalStatus(ApprovalStatus.REJECTED.name());
+                isFinal = true;
             }
         } else if (Constants.ROLE_SCHOOL_ADMIN.equals(reviewerRole)) {
             // 学校管理员可以直接审核待学院审核（PENDING）或学院已通过（APPROVED）的申请
@@ -171,12 +183,18 @@ public class EntryApplicationService {
                 application.setStatus(EntryStatus.REJECTED.name());
                 application.setApprovalStatus(ApprovalStatus.REJECTED.name());
             }
+            isFinal = true;
         } else {
             throw new RuntimeException("无权审核申请");
         }
 
         application.setUpdateTime(LocalDateTime.now());
         entryApplicationMapper.update(application);
+
+        if (isFinal && emailService != null) {
+            emailService.notifyApplicant(application.getApplicantId(), "入驻申请", application.getTeamName(),
+                    EntryStatus.ENTERED.name().equals(application.getStatus()), reviewComment);
+        }
         return application;
     }
 

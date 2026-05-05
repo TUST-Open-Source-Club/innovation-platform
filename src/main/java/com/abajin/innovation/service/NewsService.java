@@ -24,6 +24,9 @@ public class NewsService {
     @Autowired
     private UserMapper userMapper;
 
+    @Autowired
+    private EmailService emailService;
+
     /**
      * 创建新闻稿（草稿状态）
      */
@@ -68,6 +71,10 @@ public class NewsService {
         news.setApprovalStatus(ApprovalStatus.PENDING.name());
         news.setUpdateTime(LocalDateTime.now());
         newsMapper.update(news);
+
+        if (emailService != null) {
+            emailService.notifySchoolAdmins("新闻稿", news.getTitle());
+        }
         return news;
     }
 
@@ -101,7 +108,8 @@ public class NewsService {
         news.setReviewerId(reviewerId);
         news.setReviewTime(LocalDateTime.now());
 
-        if (ApprovalStatus.APPROVED.name().equals(approvalStatus)) {
+        boolean approved = ApprovalStatus.APPROVED.name().equals(approvalStatus);
+        if (approved) {
             // 审核通过，发布新闻
             news.setStatus(NewsStatus.PUBLISHED.name());
             news.setPublishTime(LocalDateTime.now());
@@ -112,6 +120,10 @@ public class NewsService {
 
         news.setUpdateTime(LocalDateTime.now());
         newsMapper.update(news);
+
+        if (emailService != null) {
+            emailService.notifyApplicant(news.getAuthorId(), "新闻稿", news.getTitle(), approved, reviewComment);
+        }
         return news;
     }
 

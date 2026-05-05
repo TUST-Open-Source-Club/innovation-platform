@@ -29,6 +29,9 @@ public class FundApplicationService {
     @Autowired
     private UserMapper userMapper;
 
+    @Autowired
+    private EmailService emailService;
+
     /**
      * 创建基金申请
      */
@@ -86,6 +89,9 @@ public class FundApplicationService {
         application.setUpdateTime(LocalDateTime.now());
         fundApplicationMapper.update(application);
 
+        if (emailService != null) {
+            emailService.notifyCollegeAdmins("基金申请", application.getTitle() != null ? application.getTitle() : "基金申请");
+        }
         return application;
     }
 
@@ -123,6 +129,7 @@ public class FundApplicationService {
         application.setReviewerId(reviewerId);
         application.setReviewTime(LocalDateTime.now());
 
+        boolean isFinal = false;
         if (com.abajin.innovation.common.Constants.ROLE_COLLEGE_ADMIN.equals(reviewerRole)) {
             // First stage: only SUBMITTED applications can be reviewed by college admin
             if (!"SUBMITTED".equals(application.getStatus())) {
@@ -132,10 +139,15 @@ public class FundApplicationService {
                 // College approved -> waiting for school review
                 application.setStatus("APPROVED");
                 application.setApprovalStatus(ApprovalStatus.PENDING.name());
+                if (emailService != null) {
+                    emailService.notifySchoolAdminsAfterCollegeApproval("基金申请",
+                            application.getTitle() != null ? application.getTitle() : "基金申请");
+                }
                 // approvedAmount decided at final stage
             } else {
                 application.setStatus("REJECTED");
                 application.setApprovalStatus(ApprovalStatus.REJECTED.name());
+                isFinal = true;
             }
         } else if (com.abajin.innovation.common.Constants.ROLE_SCHOOL_ADMIN.equals(reviewerRole)) {
             // 学校管理员可以直接审核待学院审核（SUBMITTED）或学院已通过（APPROVED）的申请
@@ -154,6 +166,7 @@ public class FundApplicationService {
                 application.setStatus("REJECTED");
                 application.setApprovalStatus(ApprovalStatus.REJECTED.name());
             }
+            isFinal = true;
         } else {
             throw new RuntimeException("无权审核申请");
         }
@@ -161,6 +174,13 @@ public class FundApplicationService {
         application.setUpdateTime(LocalDateTime.now());
         fundApplicationMapper.update(application);
 
+        if (isFinal) {
+            if (emailService != null) {
+                emailService.notifyApplicant(application.getApplicantId(), "基金申请",
+                        application.getTitle() != null ? application.getTitle() : "基金申请",
+                        "FUNDED".equals(application.getStatus()), reviewComment);
+            }
+        }
         return application;
     }
 

@@ -32,6 +32,20 @@ spring:
     url: jdbc:mysql://127.0.0.1:3306/innovation?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
     username: innovation
     password: innovation
+  mail:
+    host: ${SMTP_HOST:localhost}
+    port: ${SMTP_PORT:587}
+    username: ${SMTP_USERNAME:}
+    password: ${SMTP_PASSWORD:}
+    protocol: smtp
+    default-encoding: UTF-8
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+
 server:
   port: 8080
   servlet:
@@ -66,6 +80,9 @@ cas:
   # CAS服务器IP白名单，用于校验单点登出回调请求来源（逗号分隔）
   # 生产环境请填写真实CAS服务器IP，如：10.0.0.1,10.0.0.2
   server-ips: 127.0.0.1,0:0:0:0:0:0:0:1
+  # 是否启用CAS服务器IP白名单校验（默认关闭，内网环境无需校验）
+  # 如需开启，设置为 true 并配置 server-ips
+  server-ip-whitelist-enabled: false
 
 # 文件上传路径
 #file:

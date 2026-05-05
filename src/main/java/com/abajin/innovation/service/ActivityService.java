@@ -58,6 +58,9 @@ public class ActivityService {
     @Autowired
     private ActivityTypeMapper activityTypeMapper;
 
+    @Autowired
+    private EmailService emailService;
+
     /**
      * 创建活动申报
      */
@@ -190,6 +193,10 @@ public class ActivityService {
         activity.setApprovalStatus(ApprovalStatus.PENDING.name());
         activity.setUpdateTime(LocalDateTime.now());
         activityMapper.update(activity);
+
+        if (emailService != null) {
+            emailService.notifyCollegeAdmins("活动", activity.getTitle());
+        }
         return activity;
     }
 
@@ -225,9 +232,15 @@ public class ActivityService {
             // 学院通过，等待学校终审
             activity.setStatus(ActivityStatus.APPROVED.name());
             activity.setApprovalStatus(ApprovalStatus.PENDING.name());
+            if (emailService != null) {
+                emailService.notifySchoolAdminsAfterCollegeApproval("活动", activity.getTitle());
+            }
         } else {
             activity.setStatus(ActivityStatus.REJECTED.name());
             activity.setApprovalStatus(ApprovalStatus.REJECTED.name());
+            if (emailService != null) {
+                emailService.notifyApplicant(activity.getOrganizerId(), "活动", activity.getTitle(), false, reviewComment);
+            }
         }
 
         activity.setUpdateTime(LocalDateTime.now());
@@ -256,7 +269,8 @@ public class ActivityService {
         activity.setReviewerId(reviewerId);
         activity.setReviewTime(LocalDateTime.now());
 
-        if (ApprovalStatus.APPROVED.name().equals(approvalStatus)) {
+        boolean approved = ApprovalStatus.APPROVED.name().equals(approvalStatus);
+        if (approved) {
             activity.setStatus(ActivityStatus.PUBLISHED.name());
         } else {
             activity.setStatus(ActivityStatus.REJECTED.name());
@@ -264,6 +278,10 @@ public class ActivityService {
 
         activity.setUpdateTime(LocalDateTime.now());
         activityMapper.update(activity);
+
+        if (emailService != null) {
+            emailService.notifyApplicant(activity.getOrganizerId(), "活动", activity.getTitle(), approved, reviewComment);
+        }
         return activity;
     }
 

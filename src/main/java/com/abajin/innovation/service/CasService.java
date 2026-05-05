@@ -486,6 +486,12 @@ public class CasService {
             return true;
         }
 
+        // 未启用IP白名单校验时直接放行
+        if (casConfig.getServerIpWhitelistEnabled() == null || !casConfig.getServerIpWhitelistEnabled()) {
+            log.info("CAS服务器IP白名单校验已关闭，放行单点登出请求");
+            return true;
+        }
+
         String serverIps = casConfig.getServerIps();
         if (serverIps == null || serverIps.isEmpty()) {
             log.warn("未配置CAS服务器IP白名单，拒绝单点登出请求");
