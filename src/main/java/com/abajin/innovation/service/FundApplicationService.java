@@ -174,12 +174,10 @@ public class FundApplicationService {
         application.setUpdateTime(LocalDateTime.now());
         fundApplicationMapper.update(application);
 
-        if (isFinal) {
-            if (emailService != null) {
-                emailService.notifyApplicant(application.getApplicantId(), "基金申请",
-                        application.getTitle() != null ? application.getTitle() : "基金申请",
-                        "FUNDED".equals(application.getStatus()), reviewComment);
-            }
+        if (emailService != null && isFinal) {
+            emailService.notifyApplicant(application.getApplicantId(), "基金申请",
+                    application.getTitle() != null ? application.getTitle() : "基金申请",
+                    "FUNDED".equals(application.getStatus()), reviewComment);
         }
         return application;
     }

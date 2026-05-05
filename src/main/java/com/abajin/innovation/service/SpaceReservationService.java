@@ -1,5 +1,6 @@
 package com.abajin.innovation.service;
 
+import com.abajin.innovation.common.Constants;
 import com.abajin.innovation.dto.OccupiedSlotDTO;
 import com.abajin.innovation.entity.Activity;
 import com.abajin.innovation.entity.Space;
@@ -262,7 +263,8 @@ public class SpaceReservationService {
         }
         String reviewerRole = reviewer.getRole();
 
-        if (!com.abajin.innovation.common.Constants.ROLE_SCHOOL_ADMIN.equals(reviewerRole)) {
+        if (!com.abajin.innovation.common.Constants.ROLE_SCHOOL_ADMIN.equals(reviewerRole)
+                && !Constants.ROLE_STUDENT_ADMIN.equals(reviewerRole)) {
             throw new RuntimeException("空间预约仅学校管理员可审批");
         }
 
@@ -284,67 +286,13 @@ public class SpaceReservationService {
         reservation.setReviewerId(reviewerId);
         reservation.setReviewTime(LocalDateTime.now());
 
-        if (com.abajin.innovation.common.Constants.ROLE_COLLEGE_ADMIN.equals(reviewerRole)) {
-            // First stage: only PENDING reservations can be reviewed by college admin
-            if (!ReservationStatus.PENDING.name().equals(reservation.getStatus())) {
-                throw new RuntimeException("只能审核待学院审核的预约");
-            }
-            if (ApprovalStatus.APPROVED.equals(status)) {
-                // College approved -> waiting for school review
-                reservation.setStatus(ReservationStatus.APPROVED.name());
-                reservation.setApprovalStatus(ApprovalStatus.PENDING.name());
-            } else {
-                reservation.setStatus(ReservationStatus.REJECTED.name());
-                reservation.setApprovalStatus(ApprovalStatus.REJECTED.name());
-            }
-        } else if (com.abajin.innovation.common.Constants.ROLE_SCHOOL_ADMIN.equals(reviewerRole)
-                || com.abajin.innovation.common.Constants.ROLE_STUDENT_ADMIN.equals(reviewerRole)) {
-            // School admin or Student admin can review both college-pending and school-pending reservations
-            if (ReservationStatus.PENDING.name().equals(reservation.getStatus())
-                    && ApprovalStatus.PENDING.name().equals(reservation.getApprovalStatus())) {
-                // Direct review: school admin bypasses college review
-                if (ApprovalStatus.APPROVED.equals(status)) {
-                    reservation.setStatus(ReservationStatus.APPROVED.name());
-                    reservation.setApprovalStatus(ApprovalStatus.APPROVED.name());
-                } else {
-                    reservation.setStatus(ReservationStatus.REJECTED.name());
-                    reservation.setApprovalStatus(ApprovalStatus.REJECTED.name());
-                }
-            } else if (ReservationStatus.APPROVED.name().equals(reservation.getStatus())
-                    && ApprovalStatus.PENDING.name().equals(reservation.getApprovalStatus())) {
-                // Final review: college already approved
-                if (ApprovalStatus.APPROVED.equals(status)) {
-                    reservation.setStatus(ReservationStatus.APPROVED.name());
-                    reservation.setApprovalStatus(ApprovalStatus.APPROVED.name());
-                } else {
-                    reservation.setStatus(ReservationStatus.REJECTED.name());
-                    reservation.setApprovalStatus(ApprovalStatus.REJECTED.name());
-                }
-            } else {
-                throw new RuntimeException("只能审核待审批的预约");
-            }
+        if (ApprovalStatus.APPROVED.equals(status)) {
+            reservation.setStatus(ReservationStatus.APPROVED.name());
+            reservation.setApprovalStatus(ApprovalStatus.APPROVED.name());
         } else {
-            throw new RuntimeException("无权审核预约");
-
-        reservation.setUpdateTime(LocalDateTime.now());
-        reservationMapper.update(reservation);
-
-        // 通知申请人审批结果
-        String spaceName = reservation.getCustomSpaceName();
-        if (spaceName == null || spaceName.isBlank()) {
-            Space space = spaceMapper.selectById(reservation.getSpaceId());
-            if (space != null) {
-                spaceName = space.getName();
-            } else {
-                spaceName = "未知空间";
-            }
+            reservation.setStatus(ReservationStatus.REJECTED.name());
+            reservation.setApprovalStatus(ApprovalStatus.REJECTED.name());
         }
-        if (emailService != null) {
-            emailService.notifyApplicant(reservation.getApplicantId(), "空间预约",
-                    spaceName + " " + reservation.getReservationDate() + " " + reservation.getStartTime() + "-" + reservation.getEndTime(),
-                    ApprovalStatus.APPROVED.equals(status), reviewComment);
-        }
-
         return reservation;
     }
 
