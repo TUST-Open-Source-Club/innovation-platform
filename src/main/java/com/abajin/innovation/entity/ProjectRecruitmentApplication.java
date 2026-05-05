@@ -1,38 +1,35 @@
 package com.abajin.innovation.entity;
 
 import lombok.Data;
+
 import java.time.LocalDateTime;
 
 /**
- * 项目申请实体类
- * 用于学生申请加入团队、教师申请接管项目
+ * 项目招募申请实体
  */
 @Data
-public class ProjectApplication {
+public class ProjectRecruitmentApplication {
     private Long id;
-    private String applicationNo;
+    private Long recruitmentId;
     private Long projectId;
     private String projectTitle;
+    private String recruitmentPositionName;
     private Long applicantId;
     private String applicantName;
     private String applicantRole;
-    private String applicationType;
     private String desiredPosition;
     private Long applicantCollegeId;
     private String applicantCollegeName;
     private String applicantMajor;
-    private String applicationContent;
     private String qualifications;
+    private String answerContent;
     private String resumeUrl;
-    private String contactPhone;
-    private String contactEmail;
+    private String remark;
     private String approvalStatus;
-    private String approverRole;
     private Long approverId;
     private String approverName;
-    private LocalDateTime approvalTime;
     private String approvalComment;
-    private Integer status;
+    private LocalDateTime approvalTime;
     private LocalDateTime createTime;
     private LocalDateTime updateTime;
 }

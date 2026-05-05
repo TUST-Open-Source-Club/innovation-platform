@@ -62,6 +62,13 @@ services:
       CAS_SERVER_LOGIN_URL: ${CAS_SERVER_LOGIN_URL:-https://ids.wisedu.com.cn:9086/authserver/login}
       CAS_CLIENT_HOST_URL: ${CAS_CLIENT_HOST_URL:-http://localhost:8080/api}
       CAS_IGNORE_SSL_VALIDATION: ${CAS_IGNORE_SSL_VALIDATION:-false}
+      CAS_IP_WHITELIST_ENABLED: ${CAS_IP_WHITELIST_ENABLED:-false}
+      CAS_SERVER_IPS: ${CAS_SERVER_IPS:-}
+      # SMTP邮件配置（可选，启用后自动发送审批提醒邮件）
+      SMTP_HOST: ${SMTP_HOST:-localhost}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USERNAME: ${SMTP_USERNAME:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
     expose:
       - "8080"
     volumes:

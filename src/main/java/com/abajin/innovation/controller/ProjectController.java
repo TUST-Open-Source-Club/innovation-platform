@@ -19,7 +19,7 @@ public class ProjectController {
     private ProjectService projectService;
 
     @PostMapping
-    @RequiresRole(value = {Constants.ROLE_STUDENT, Constants.ROLE_TEACHER})
+    @RequiresRole(value = {Constants.ROLE_STUDENT, Constants.ROLE_STUDENT_ADMIN, Constants.ROLE_TEACHER})
     public Result<Project> createProject(
             @Valid @RequestBody Project project,
             @RequestAttribute("userId") Long userId) {
@@ -32,7 +32,7 @@ public class ProjectController {
     }
 
     @PutMapping("/{id}")
-    @RequiresRole(value = {Constants.ROLE_STUDENT, Constants.ROLE_TEACHER})
+    @RequiresRole(value = {Constants.ROLE_STUDENT, Constants.ROLE_STUDENT_ADMIN, Constants.ROLE_TEACHER})
     public Result<Project> updateProject(
             @PathVariable Long id,
             @Valid @RequestBody Project project,
@@ -46,7 +46,7 @@ public class ProjectController {
     }
 
     @PostMapping("/{id}/submit")
-    @RequiresRole(value = {Constants.ROLE_STUDENT, Constants.ROLE_TEACHER})
+    @RequiresRole(value = {Constants.ROLE_STUDENT, Constants.ROLE_STUDENT_ADMIN, Constants.ROLE_TEACHER})
     public Result<Project> submitProject(
             @PathVariable Long id,
             @RequestAttribute("userId") Long userId) {
@@ -142,7 +142,7 @@ public class ProjectController {
      * POST /api/projects/{id}/transfer-leader
      */
     @PostMapping("/{id}/transfer-leader")
-    @RequiresRole(value = {Constants.ROLE_STUDENT, Constants.ROLE_TEACHER})
+    @RequiresRole(value = {Constants.ROLE_STUDENT, Constants.ROLE_STUDENT_ADMIN, Constants.ROLE_TEACHER})
     public Result<Project> transferLeader(
             @PathVariable Long id,
             @RequestBody Map<String, Long> body,
@@ -164,7 +164,7 @@ public class ProjectController {
      * POST /api/projects/{id}/vacate-leader
      */
     @PostMapping("/{id}/vacate-leader")
-    @RequiresRole(value = {Constants.ROLE_STUDENT, Constants.ROLE_TEACHER})
+    @RequiresRole(value = {Constants.ROLE_STUDENT, Constants.ROLE_STUDENT_ADMIN, Constants.ROLE_TEACHER})
     public Result<Project> vacateLeader(
             @PathVariable Long id,
             @RequestAttribute("userId") Long userId) {

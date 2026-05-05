@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.abajin.innovation.mapper.ProjectRecruitmentMapper">
+
+    <resultMap id="BaseResultMap" type="com.abajin.innovation.entity.ProjectRecruitment">
+        <id column="id" property="id"/>
+        <result column="project_id" property="projectId"/>
+        <result column="project_title" property="projectTitle"/>
+        <result column="publisher_id" property="publisherId"/>
+        <result column="publisher_name" property="publisherName"/>
+        <result column="position_name" property="positionName"/>
+        <result column="task_description" property="taskDescription"/>
+        <result column="college_preference" property="collegePreference"/>
+        <result column="major_preference" property="majorPreference"/>
+        <result column="question_content" property="questionContent"/>
+        <result column="status" property="status"/>
+        <result column="create_time" property="createTime"/>
+        <result column="update_time" property="updateTime"/>
+    </resultMap>
+
+    <select id="selectById" resultMap="BaseResultMap">
+        SELECT pr.*, p.title AS project_title
+        FROM project_recruitment pr
+        LEFT JOIN project p ON pr.project_id = p.id
+        WHERE pr.id = #{id}
+    </select>
+
+    <select id="selectByProjectId" resultMap="BaseResultMap">
+        SELECT pr.*, p.title AS project_title
+        FROM project_recruitment pr
+        LEFT JOIN project p ON pr.project_id = p.id
+        WHERE pr.project_id = #{projectId}
+        ORDER BY pr.create_time DESC
+    </select>
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO project_recruitment (
+            project_id, project_title, publisher_id, publisher_name, position_name,
+            task_description, college_preference, major_preference, question_content,
+            status, create_time, update_time
+        ) VALUES (
+            #{projectId}, #{projectTitle}, #{publisherId}, #{publisherName}, #{positionName},
+            #{taskDescription}, #{collegePreference}, #{majorPreference}, #{questionContent},
+            #{status}, #{createTime}, #{updateTime}
+        )
+    </insert>
+
+    <update id="update">
+        UPDATE project_recruitment
+        <set>
+            <if test="positionName != null">position_name = #{positionName},</if>
+            <if test="taskDescription != null">task_description = #{taskDescription},</if>
+            <if test="collegePreference != null">college_preference = #{collegePreference},</if>
+            <if test="majorPreference != null">major_preference = #{majorPreference},</if>
+            <if test="questionContent != null">question_content = #{questionContent},</if>
+            <if test="status != null">status = #{status},</if>
+            update_time = #{updateTime}
+        </set>
+        WHERE id = #{id}
+    </update>
+
+    <delete id="deleteById">
+        DELETE FROM project_recruitment WHERE id = #{id}
+    </delete>
+
+</mapper>

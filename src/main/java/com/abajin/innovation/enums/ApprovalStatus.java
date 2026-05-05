@@ -6,7 +6,8 @@ package com.abajin.innovation.enums;
 public enum ApprovalStatus {
     PENDING("待审批"),
     APPROVED("已通过"),
-    REJECTED("已拒绝");
+    REJECTED("已拒绝"),
+    WITHDRAWN("已撤回");
 
     private final String description;
 

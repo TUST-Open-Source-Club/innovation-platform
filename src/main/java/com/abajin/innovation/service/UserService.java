@@ -365,9 +365,10 @@ public class UserService {
             String role = row.getRole().trim();
             if (!Constants.ROLE_STUDENT.equals(role) 
                     && !Constants.ROLE_TEACHER.equals(role)
+                    && !Constants.ROLE_STUDENT_ADMIN.equals(role)
                     && !Constants.ROLE_COLLEGE_ADMIN.equals(role) 
                     && !Constants.ROLE_SCHOOL_ADMIN.equals(role)) {
-                throw new RuntimeException("第" + (count + 1) + "行：无效的角色，必须是 STUDENT、TEACHER、COLLEGE_ADMIN 或 SCHOOL_ADMIN");
+                throw new RuntimeException("第" + (count + 1) + "行：无效的角色，必须是 STUDENT、TEACHER、STUDENT_ADMIN、COLLEGE_ADMIN 或 SCHOOL_ADMIN");
             }
 
             // 检查用户名是否已存在

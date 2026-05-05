@@ -28,7 +28,7 @@ public class CreateUserDTO {
     private String phone;
 
     @NotBlank(message = "角色不能为空")
-    private String role; // STUDENT, TEACHER, COLLEGE_ADMIN, SCHOOL_ADMIN
+    private String role; // STUDENT, TEACHER, STUDENT_ADMIN, COLLEGE_ADMIN, SCHOOL_ADMIN
 
     private Long collegeId; // 所属学院ID
 

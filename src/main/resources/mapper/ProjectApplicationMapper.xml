@@ -11,8 +11,13 @@
         <result column="applicant_name" property="applicantName"/>
         <result column="applicant_role" property="applicantRole"/>
         <result column="application_type" property="applicationType"/>
+        <result column="desired_position" property="desiredPosition"/>
+        <result column="applicant_college_id" property="applicantCollegeId"/>
+        <result column="applicant_college_name" property="applicantCollegeName"/>
+        <result column="applicant_major" property="applicantMajor"/>
         <result column="application_content" property="applicationContent"/>
         <result column="qualifications" property="qualifications"/>
+        <result column="resume_url" property="resumeUrl"/>
         <result column="contact_phone" property="contactPhone"/>
         <result column="contact_email" property="contactEmail"/>
         <result column="approval_status" property="approvalStatus"/>
@@ -41,6 +46,25 @@
         ORDER BY pa.create_time DESC
     </select>
 
+    <select id="selectByProjectIdAndType" resultMap="BaseResultMap">
+        SELECT pa.*, p.title AS project_title
+        FROM project_application pa
+        LEFT JOIN project p ON pa.project_id = p.id
+        WHERE pa.project_id = #{projectId}
+          AND pa.application_type = #{applicationType}
+        ORDER BY pa.create_time DESC
+    </select>
+
+    <select id="selectByProjectIdAndApplicantIdAndType" resultMap="BaseResultMap">
+        SELECT pa.*, p.title AS project_title
+        FROM project_application pa
+        LEFT JOIN project p ON pa.project_id = p.id
+        WHERE pa.project_id = #{projectId}
+          AND pa.applicant_id = #{applicantId}
+          AND pa.application_type = #{applicationType}
+        ORDER BY pa.create_time DESC
+    </select>
+
     <select id="selectByApplicantId" resultMap="BaseResultMap">
         SELECT pa.*, p.title AS project_title
         FROM project_application pa
@@ -62,11 +86,13 @@
     <insert id="insert" useGeneratedKeys="true" keyProperty="id">
         INSERT INTO project_application (
             application_no, project_id, project_title, applicant_id, applicant_name, applicant_role,
-            application_type, application_content, qualifications, contact_phone, contact_email,
+            application_type, desired_position, applicant_college_id, applicant_college_name, applicant_major,
+            application_content, qualifications, resume_url, contact_phone, contact_email,
             approval_status, approver_role, status, create_time, update_time
         ) VALUES (
             #{applicationNo}, #{projectId}, #{projectTitle}, #{applicantId}, #{applicantName}, #{applicantRole},
-            #{applicationType}, #{applicationContent}, #{qualifications}, #{contactPhone}, #{contactEmail},
+            #{applicationType}, #{desiredPosition}, #{applicantCollegeId}, #{applicantCollegeName}, #{applicantMajor},
+            #{applicationContent}, #{qualifications}, #{resumeUrl}, #{contactPhone}, #{contactEmail},
             #{approvalStatus}, #{approverRole}, #{status}, #{createTime}, #{updateTime}
         )
     </insert>
@@ -74,8 +100,13 @@
     <update id="update">
         UPDATE project_application
         <set>
+            <if test="desiredPosition != null">desired_position = #{desiredPosition},</if>
+            <if test="applicantCollegeId != null">applicant_college_id = #{applicantCollegeId},</if>
+            <if test="applicantCollegeName != null">applicant_college_name = #{applicantCollegeName},</if>
+            <if test="applicantMajor != null">applicant_major = #{applicantMajor},</if>
             <if test="applicationContent != null">application_content = #{applicationContent},</if>
             <if test="qualifications != null">qualifications = #{qualifications},</if>
+            <if test="resumeUrl != null">resume_url = #{resumeUrl},</if>
             <if test="contactPhone != null">contact_phone = #{contactPhone},</if>
             <if test="contactEmail != null">contact_email = #{contactEmail},</if>
             <if test="approvalStatus != null">approval_status = #{approvalStatus},</if>

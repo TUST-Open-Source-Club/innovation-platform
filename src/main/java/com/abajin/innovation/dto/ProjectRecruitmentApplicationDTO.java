@@ -1,17 +1,13 @@
 package com.abajin.innovation.dto;
 
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 
 /**
- * 项目申请DTO
+ * 项目招募申请 DTO
  */
 @Data
-public class ProjectApplicationDTO {
-    @NotNull(message = "项目ID不能为空")
-    private Long projectId;
-
+public class ProjectRecruitmentApplicationDTO {
     @NotBlank(message = "申请职位不能为空")
     private String desiredPosition;
 
@@ -21,8 +17,7 @@ public class ProjectApplicationDTO {
     @NotBlank(message = "特长不能为空")
     private String qualifications;
 
+    private String answerContent;
     private String resumeUrl;
-    private String applicationContent; // 申请内容
-    private String contactPhone; // 联系电话
-    private String contactEmail; // 联系邮箱
+    private String remark;
 }

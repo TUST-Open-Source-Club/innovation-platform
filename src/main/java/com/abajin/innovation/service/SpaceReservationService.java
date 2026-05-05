@@ -284,13 +284,47 @@ public class SpaceReservationService {
         reservation.setReviewerId(reviewerId);
         reservation.setReviewTime(LocalDateTime.now());
 
-        if (ApprovalStatus.APPROVED.equals(status)) {
-            reservation.setStatus(ReservationStatus.APPROVED.name());
-            reservation.setApprovalStatus(ApprovalStatus.APPROVED.name());
+        if (com.abajin.innovation.common.Constants.ROLE_COLLEGE_ADMIN.equals(reviewerRole)) {
+            // First stage: only PENDING reservations can be reviewed by college admin
+            if (!ReservationStatus.PENDING.name().equals(reservation.getStatus())) {
+                throw new RuntimeException("只能审核待学院审核的预约");
+            }
+            if (ApprovalStatus.APPROVED.equals(status)) {
+                // College approved -> waiting for school review
+                reservation.setStatus(ReservationStatus.APPROVED.name());
+                reservation.setApprovalStatus(ApprovalStatus.PENDING.name());
+            } else {
+                reservation.setStatus(ReservationStatus.REJECTED.name());
+                reservation.setApprovalStatus(ApprovalStatus.REJECTED.name());
+            }
+        } else if (com.abajin.innovation.common.Constants.ROLE_SCHOOL_ADMIN.equals(reviewerRole)
+                || com.abajin.innovation.common.Constants.ROLE_STUDENT_ADMIN.equals(reviewerRole)) {
+            // School admin or Student admin can review both college-pending and school-pending reservations
+            if (ReservationStatus.PENDING.name().equals(reservation.getStatus())
+                    && ApprovalStatus.PENDING.name().equals(reservation.getApprovalStatus())) {
+                // Direct review: school admin bypasses college review
+                if (ApprovalStatus.APPROVED.equals(status)) {
+                    reservation.setStatus(ReservationStatus.APPROVED.name());
+                    reservation.setApprovalStatus(ApprovalStatus.APPROVED.name());
+                } else {
+                    reservation.setStatus(ReservationStatus.REJECTED.name());
+                    reservation.setApprovalStatus(ApprovalStatus.REJECTED.name());
+                }
+            } else if (ReservationStatus.APPROVED.name().equals(reservation.getStatus())
+                    && ApprovalStatus.PENDING.name().equals(reservation.getApprovalStatus())) {
+                // Final review: college already approved
+                if (ApprovalStatus.APPROVED.equals(status)) {
+                    reservation.setStatus(ReservationStatus.APPROVED.name());
+                    reservation.setApprovalStatus(ApprovalStatus.APPROVED.name());
+                } else {
+                    reservation.setStatus(ReservationStatus.REJECTED.name());
+                    reservation.setApprovalStatus(ApprovalStatus.REJECTED.name());
+                }
+            } else {
+                throw new RuntimeException("只能审核待审批的预约");
+            }
         } else {
-            reservation.setStatus(ReservationStatus.REJECTED.name());
-            reservation.setApprovalStatus(ApprovalStatus.REJECTED.name());
-        }
+            throw new RuntimeException("无权审核预约");
 
         reservation.setUpdateTime(LocalDateTime.now());
         reservationMapper.update(reservation);
@@ -324,6 +358,8 @@ public class SpaceReservationService {
     /**
      * 查询待审核的预约列表（管理员）
      * 空间预约跳过学院审批，仅学校管理员可查看和审批
+     * 学院管理员：查看待学院审核（status=PENDING）
+     * 学校管理员/学生管理员：查看所有待审核（status=PENDING 或 status=APPROVED且approvalStatus=PENDING）
      */
     public List<SpaceReservation> getPendingReservations(String role) {
         // 空间预约不经过学院审批

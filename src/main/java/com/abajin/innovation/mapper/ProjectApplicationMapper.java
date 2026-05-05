@@ -21,6 +21,12 @@ public interface ProjectApplicationMapper {
      */
     List<ProjectApplication> selectByProjectId(@Param("projectId") Long projectId);
 
+    List<ProjectApplication> selectByProjectIdAndType(@Param("projectId") Long projectId,
+                                                      @Param("applicationType") String applicationType);
+
+    List<ProjectApplication> selectByProjectIdAndApplicantIdAndType(@Param("projectId") Long projectId,
+                                                                    @Param("applicantId") Long applicantId,
+                                                                    @Param("applicationType") String applicationType);
     /**
      * 根据申请人ID查询申请列表
      */
