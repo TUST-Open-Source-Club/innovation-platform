@@ -16,14 +16,15 @@ stages:
       - step: build@maven
         name: build_maven
         displayName: Maven 构建
-        jdkVersion: 8
-        mavenVersion: 3.3.9
+        jdkVersion: '21'
+        mavenVersion: 4.0.0
         commands:
           - mvn -B clean package -Dmaven.test.skip=true
         artifacts:
           - name: BUILD_ARTIFACT
             path:
               - ./target
+        strategy: {}
   - name: test
     displayName: 测试
     strategy: naturally
@@ -33,7 +34,7 @@ stages:
         name: unit_test_maven
         displayName: Maven 单元测试
         jdkVersion: '21'
-        mavenVersion: 3.9.11
+        mavenVersion: 4.0.0
         commands:
           - '# Maven单元测试默认命令'
           - mvn -B test -Dmaven.test.failure.ignore=true
