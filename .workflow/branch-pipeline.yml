@@ -21,7 +21,7 @@ stages:
         commands:
           - '# Maven单元测试默认命令'
           - mvn -B test -Dmaven.test.failure.ignore=true -Dtest='!PersonServiceTest,!ActivityServiceTest' -DfailIfNoTests=false
-          - mvn site
+          - mvn surefire-report:report-only
         report:
           path: ./target/site
           index: surefire-report.html
