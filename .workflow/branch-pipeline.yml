@@ -22,7 +22,7 @@ stages:
           - '# Maven单元测试默认命令'
           - mvn -B test -Dmaven.test.failure.ignore=true -Dtest='!PersonServiceTest,!ActivityServiceTest' -DfailIfNoTests=false
           - ls -la target/surefire-reports/ 2>/dev/null || echo "surefire-reports 不存在"
-          - mvn surefire-report:report
+          - mvn surefire-report:report -DskipTests=true
           - ls -la target/site/ 2>/dev/null || echo "site 目录不存在"
         report:
           path: ./target/site
