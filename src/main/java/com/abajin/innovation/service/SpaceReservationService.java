@@ -293,6 +293,7 @@ public class SpaceReservationService {
             reservation.setStatus(ReservationStatus.REJECTED.name());
             reservation.setApprovalStatus(ApprovalStatus.REJECTED.name());
         }
+        reservationMapper.update(reservation);
         return reservation;
     }
 
