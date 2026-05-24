@@ -54,6 +54,9 @@ public class ProjectDockingService {
     @Autowired
     private UserMapper userMapper;
 
+    @Autowired
+    private EmailService emailService;
+
     @Transactional
     public ProjectApplication applyToProject(Long projectId, ProjectApplicationDTO dto, Long applicantId) {
         User applicant = getExistingUser(applicantId);
@@ -102,6 +105,24 @@ public class ProjectDockingService {
         application.setCreateTime(LocalDateTime.now());
         application.setUpdateTime(LocalDateTime.now());
         projectApplicationMapper.insert(application);
+
+        // 邮件通知：有新的成员报名时给项目负责人发邮件
+        if (project.getLeaderId() != null) {
+            User leader = userMapper.selectById(project.getLeaderId());
+            if (leader != null && leader.getEmail() != null && !leader.getEmail().isBlank()) {
+                String subject = "【创新平台】有新的成员申请加入您的项目";
+                String content = "您好，\n\n有新的成员 " + applicant.getRealName() + " 申请加入您的项目《" + project.getTitle() + "》。\n\n请登录创新平台查看详情。\n";
+                emailService.sendMail(leader.getEmail(), subject, content);
+            }
+        }
+
+        // 邮件回执：申请加入项目后给申请人发邮件回执
+        if (applicant.getEmail() != null && !applicant.getEmail().isBlank()) {
+            String subject = "【创新平台】您已成功提交项目加入申请";
+            String content = "您好，\n\n您已成功提交加入项目《" + project.getTitle() + "》的申请，请等待项目负责人审批。\n\n请登录创新平台查看详情。\n";
+            emailService.sendMail(applicant.getEmail(), subject, content);
+        }
+
         return application;
     }
 
@@ -111,6 +132,44 @@ public class ProjectDockingService {
             return projectApplicationMapper.selectByProjectIdAndType(projectId, APPLICATION_TYPE_JOIN_TEAM);
         }
         return projectApplicationMapper.selectByProjectIdAndApplicantIdAndType(projectId, userId, APPLICATION_TYPE_JOIN_TEAM);
+    }
+
+    @Transactional
+    public ProjectApplication updateProjectApplication(Long applicationId, ProjectApplicationDTO dto, Long userId) {
+        ProjectApplication application = projectApplicationMapper.selectById(applicationId);
+        if (application == null) {
+            throw new RuntimeException("申请不存在");
+        }
+        if (!application.getApplicantId().equals(userId)) {
+            throw new RuntimeException("只能修改自己的申请");
+        }
+        if (!ApprovalStatus.PENDING.getCode().equals(application.getApprovalStatus())) {
+            throw new RuntimeException("当前申请无法修改");
+        }
+        if (dto.getDesiredPosition() != null) {
+            application.setDesiredPosition(dto.getDesiredPosition());
+        }
+        if (dto.getApplicantMajor() != null) {
+            application.setApplicantMajor(dto.getApplicantMajor());
+        }
+        if (dto.getApplicationContent() != null) {
+            application.setApplicationContent(dto.getApplicationContent());
+        }
+        if (dto.getQualifications() != null) {
+            application.setQualifications(dto.getQualifications());
+        }
+        if (dto.getResumeUrl() != null) {
+            application.setResumeUrl(dto.getResumeUrl());
+        }
+        if (dto.getContactPhone() != null) {
+            application.setContactPhone(dto.getContactPhone());
+        }
+        if (dto.getContactEmail() != null) {
+            application.setContactEmail(dto.getContactEmail());
+        }
+        application.setUpdateTime(LocalDateTime.now());
+        projectApplicationMapper.update(application);
+        return projectApplicationMapper.selectById(applicationId);
     }
 
     @Transactional
@@ -168,7 +227,25 @@ public class ProjectDockingService {
             attachApplicantToProjectTeam(project, application.getApplicantId(), application.getApplicantName());
         }
 
+        // 邮件通知：申请审批有回复时给申请人发邮件通知
+        User applicant = userMapper.selectById(application.getApplicantId());
+        if (applicant != null && applicant.getEmail() != null && !applicant.getEmail().isBlank()) {
+            String result = approvalStatus == ApprovalStatus.APPROVED ? "已通过" : "未通过";
+            String subject = "【创新平台】您的项目加入申请审批结果：" + result;
+            StringBuilder content = new StringBuilder();
+            content.append("您好，\n\n您提交加入项目《").append(project.getTitle()).append("》的申请审批结果：").append(result).append("\n");
+            if (dto.getApprovalComment() != null && !dto.getApprovalComment().isBlank()) {
+                content.append("审批意见：").append(dto.getApprovalComment()).append("\n");
+            }
+            content.append("\n请登录创新平台查看详情。\n");
+            emailService.sendMail(applicant.getEmail(), subject, content.toString());
+        }
+
         return projectApplicationMapper.selectById(applicationId);
+    }
+
+    public List<ProjectApplication> getMyProjectApplications(Long applicantId) {
+        return projectApplicationMapper.selectByApplicantId(applicantId);
     }
 
     @Transactional
@@ -193,7 +270,47 @@ public class ProjectDockingService {
         recruitment.setCreateTime(LocalDateTime.now());
         recruitment.setUpdateTime(LocalDateTime.now());
         projectRecruitmentMapper.insert(recruitment);
+
+        // 邮件回执：发布招募时给项目负责人发邮件回执
+        if (publisher != null && publisher.getEmail() != null && !publisher.getEmail().isBlank()) {
+            String subject = "【创新平台】您已成功发布项目招募";
+            String content = "您好，\n\n您已成功发布项目《" + project.getTitle() + "》的招募职位：" + dto.getPositionName() + "。\n\n请登录创新平台查看详情。\n";
+            emailService.sendMail(publisher.getEmail(), subject, content);
+        }
+
         return recruitment;
+    }
+
+    @Transactional
+    public ProjectRecruitment closeRecruitment(Long recruitmentId, Long userId) {
+        ProjectRecruitment recruitment = projectRecruitmentMapper.selectById(recruitmentId);
+        if (recruitment == null) {
+            throw new RuntimeException("招募不存在");
+        }
+        Project project = getExistingProject(recruitment.getProjectId());
+        if (project.getLeaderId() == null || !project.getLeaderId().equals(userId)) {
+            throw new RuntimeException("只有项目负责人可以停止招募");
+        }
+        recruitment.setStatus("CLOSED");
+        recruitment.setUpdateTime(LocalDateTime.now());
+        projectRecruitmentMapper.update(recruitment);
+        return projectRecruitmentMapper.selectById(recruitmentId);
+    }
+
+    @Transactional
+    public ProjectRecruitment reopenRecruitment(Long recruitmentId, Long userId) {
+        ProjectRecruitment recruitment = projectRecruitmentMapper.selectById(recruitmentId);
+        if (recruitment == null) {
+            throw new RuntimeException("招募不存在");
+        }
+        Project project = getExistingProject(recruitment.getProjectId());
+        if (project.getLeaderId() == null || !project.getLeaderId().equals(userId)) {
+            throw new RuntimeException("只有项目负责人可以重新开启招募");
+        }
+        recruitment.setStatus(RECRUITMENT_STATUS_OPEN);
+        recruitment.setUpdateTime(LocalDateTime.now());
+        projectRecruitmentMapper.update(recruitment);
+        return projectRecruitmentMapper.selectById(recruitmentId);
     }
 
     public List<ProjectRecruitment> getRecruitments(Long projectId) {
@@ -273,12 +390,55 @@ public class ProjectDockingService {
         return projectRecruitmentApplicationMapper.selectById(application.getId());
     }
 
+    public List<ProjectRecruitment> getOpenRecruitments() {
+        return projectRecruitmentMapper.selectByStatus(RECRUITMENT_STATUS_OPEN);
+    }
+
     public List<ProjectRecruitmentApplication> getRecruitmentApplications(Long projectId, Long userId, String role) {
         Project project = getExistingProject(projectId);
         if (canManageProjectApplications(project, userId, role)) {
             return projectRecruitmentApplicationMapper.selectByProjectId(projectId);
         }
         return projectRecruitmentApplicationMapper.selectByProjectIdAndApplicantId(projectId, userId);
+    }
+
+    @Transactional
+    public ProjectRecruitmentApplication updateRecruitmentApplication(Long applicationId, ProjectRecruitmentApplicationDTO dto, Long userId) {
+        ProjectRecruitmentApplication application = projectRecruitmentApplicationMapper.selectById(applicationId);
+        if (application == null) {
+            throw new RuntimeException("招募申请不存在");
+        }
+        if (!application.getApplicantId().equals(userId)) {
+            throw new RuntimeException("只能修改自己的招募申请");
+        }
+        if (!ApprovalStatus.PENDING.getCode().equals(application.getApprovalStatus())) {
+            throw new RuntimeException("当前招募申请无法修改");
+        }
+        if (dto.getDesiredPosition() != null) {
+            application.setDesiredPosition(dto.getDesiredPosition());
+        }
+        if (dto.getApplicantMajor() != null) {
+            application.setApplicantMajor(dto.getApplicantMajor());
+        }
+        if (dto.getQualifications() != null) {
+            application.setQualifications(dto.getQualifications());
+        }
+        if (dto.getAnswerContent() != null) {
+            application.setAnswerContent(dto.getAnswerContent());
+        }
+        if (dto.getResumeUrl() != null) {
+            application.setResumeUrl(dto.getResumeUrl());
+        }
+        if (dto.getRemark() != null) {
+            application.setRemark(dto.getRemark());
+        }
+        application.setUpdateTime(LocalDateTime.now());
+        projectRecruitmentApplicationMapper.update(application);
+        return projectRecruitmentApplicationMapper.selectById(applicationId);
+    }
+
+    public List<ProjectRecruitmentApplication> getMyRecruitmentApplications(Long applicantId) {
+        return projectRecruitmentApplicationMapper.selectByApplicantId(applicantId);
     }
 
     @Transactional
@@ -336,6 +496,20 @@ public class ProjectDockingService {
 
         if (approvalStatus == ApprovalStatus.APPROVED) {
             attachApplicantToProjectTeam(project, application.getApplicantId(), application.getApplicantName());
+        }
+
+        // 邮件通知：申请审批有回复时给申请人发邮件通知
+        User applicant = userMapper.selectById(application.getApplicantId());
+        if (applicant != null && applicant.getEmail() != null && !applicant.getEmail().isBlank()) {
+            String result = approvalStatus == ApprovalStatus.APPROVED ? "已通过" : "未通过";
+            String subject = "【创新平台】您的招募申请审批结果：" + result;
+            StringBuilder content = new StringBuilder();
+            content.append("您好，\n\n您提交的项目《").append(project.getTitle()).append("》招募申请审批结果：").append(result).append("\n");
+            if (dto.getApprovalComment() != null && !dto.getApprovalComment().isBlank()) {
+                content.append("审批意见：").append(dto.getApprovalComment()).append("\n");
+            }
+            content.append("\n请登录创新平台查看详情。\n");
+            emailService.sendMail(applicant.getEmail(), subject, content.toString());
         }
 
         return projectRecruitmentApplicationMapper.selectById(applicationId);

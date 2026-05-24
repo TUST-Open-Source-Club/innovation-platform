@@ -68,6 +68,12 @@
         ORDER BY pra.create_time DESC
     </select>
 
+    <select id="selectByApplicantId" resultMap="BaseResultMap">
+        <include refid="BaseSelect"/>
+        WHERE pra.applicant_id = #{applicantId}
+        ORDER BY pra.create_time DESC
+    </select>
+
     <insert id="insert" useGeneratedKeys="true" keyProperty="id">
         INSERT INTO project_recruitment_application (
             recruitment_id, project_id, applicant_id, applicant_name, applicant_role,

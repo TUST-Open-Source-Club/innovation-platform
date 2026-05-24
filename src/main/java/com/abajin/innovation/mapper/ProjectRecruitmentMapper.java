@@ -12,6 +12,8 @@ public interface ProjectRecruitmentMapper {
 
     List<ProjectRecruitment> selectByProjectId(@Param("projectId") Long projectId);
 
+    List<ProjectRecruitment> selectByStatus(@Param("status") String status);
+
     int insert(ProjectRecruitment recruitment);
 
     int update(ProjectRecruitment recruitment);

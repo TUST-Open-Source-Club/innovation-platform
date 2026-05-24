@@ -264,6 +264,65 @@ public class InformationLinkController {
     }
 
     /**
+     * 停止项目招募
+     * POST /api/information-link/recruitments/{recruitmentId}/close
+     */
+    @PostMapping("/recruitments/{recruitmentId}/close")
+    @RequiresRole(value = {
+            Constants.ROLE_STUDENT,
+            Constants.ROLE_STUDENT_ADMIN,
+            Constants.ROLE_TEACHER,
+            Constants.ROLE_COLLEGE_ADMIN,
+            Constants.ROLE_SCHOOL_ADMIN
+    }, allowAdmin = true)
+    public Result<ProjectRecruitment> closeRecruitment(
+            @PathVariable Long recruitmentId,
+            @RequestAttribute("userId") Long userId) {
+        try {
+            ProjectRecruitment recruitment = projectDockingService.closeRecruitment(recruitmentId, userId);
+            return Result.success("招募已停止", recruitment);
+        } catch (Exception e) {
+            return Result.error(e.getMessage());
+        }
+    }
+
+    /**
+     * 重新开启项目招募
+     * POST /api/information-link/recruitments/{recruitmentId}/reopen
+     */
+    @PostMapping("/recruitments/{recruitmentId}/reopen")
+    @RequiresRole(value = {
+            Constants.ROLE_STUDENT,
+            Constants.ROLE_STUDENT_ADMIN,
+            Constants.ROLE_TEACHER,
+            Constants.ROLE_COLLEGE_ADMIN,
+            Constants.ROLE_SCHOOL_ADMIN
+    }, allowAdmin = true)
+    public Result<ProjectRecruitment> reopenRecruitment(
+            @PathVariable Long recruitmentId,
+            @RequestAttribute("userId") Long userId) {
+        try {
+            ProjectRecruitment recruitment = projectDockingService.reopenRecruitment(recruitmentId, userId);
+            return Result.success("招募已重新开启", recruitment);
+        } catch (Exception e) {
+            return Result.error(e.getMessage());
+        }
+    }
+
+    /**
+     * 查看所有开放的招募
+     * GET /api/information-link/recruitments/open
+     */
+    @GetMapping("/recruitments/open")
+    public Result<List<ProjectRecruitment>> getOpenRecruitments() {
+        try {
+            return Result.success(projectDockingService.getOpenRecruitments());
+        } catch (Exception e) {
+            return Result.error(e.getMessage());
+        }
+    }
+
+    /**
      * 根据招募申请加入
      * POST /api/information-link/recruitments/{recruitmentId}/applications
      */
@@ -295,6 +354,72 @@ public class InformationLinkController {
             List<ProjectRecruitmentApplication> applications =
                     projectDockingService.getRecruitmentApplications(projectId, userId, role);
             return Result.success(applications);
+        } catch (Exception e) {
+            return Result.error(e.getMessage());
+        }
+    }
+
+    /**
+     * 查看我的所有主动申请
+     * GET /api/information-link/my/project-applications
+     */
+    @GetMapping("/my/project-applications")
+    @RequiresRole(value = {Constants.ROLE_STUDENT, Constants.ROLE_STUDENT_ADMIN})
+    public Result<List<ProjectApplication>> getMyProjectApplications(
+            @RequestAttribute("userId") Long userId) {
+        try {
+            return Result.success(projectDockingService.getMyProjectApplications(userId));
+        } catch (Exception e) {
+            return Result.error(e.getMessage());
+        }
+    }
+
+    /**
+     * 查看我的所有招募申请
+     * GET /api/information-link/my/recruitment-applications
+     */
+    @GetMapping("/my/recruitment-applications")
+    @RequiresRole(value = {Constants.ROLE_STUDENT, Constants.ROLE_STUDENT_ADMIN})
+    public Result<List<ProjectRecruitmentApplication>> getMyRecruitmentApplications(
+            @RequestAttribute("userId") Long userId) {
+        try {
+            return Result.success(projectDockingService.getMyRecruitmentApplications(userId));
+        } catch (Exception e) {
+            return Result.error(e.getMessage());
+        }
+    }
+
+    /**
+     * 修改主动申请
+     * PUT /api/information-link/project-applications/{applicationId}
+     */
+    @PutMapping("/project-applications/{applicationId}")
+    @RequiresRole(value = {Constants.ROLE_STUDENT, Constants.ROLE_STUDENT_ADMIN})
+    public Result<ProjectApplication> updateProjectApplication(
+            @PathVariable Long applicationId,
+            @Valid @RequestBody ProjectApplicationDTO dto,
+            @RequestAttribute("userId") Long userId) {
+        try {
+            ProjectApplication application = projectDockingService.updateProjectApplication(applicationId, dto, userId);
+            return Result.success("修改成功", application);
+        } catch (Exception e) {
+            return Result.error(e.getMessage());
+        }
+    }
+
+    /**
+     * 修改招募申请
+     * PUT /api/information-link/recruitment-applications/{applicationId}
+     */
+    @PutMapping("/recruitment-applications/{applicationId}")
+    @RequiresRole(value = {Constants.ROLE_STUDENT, Constants.ROLE_STUDENT_ADMIN})
+    public Result<ProjectRecruitmentApplication> updateRecruitmentApplication(
+            @PathVariable Long applicationId,
+            @Valid @RequestBody ProjectRecruitmentApplicationDTO dto,
+            @RequestAttribute("userId") Long userId) {
+        try {
+            ProjectRecruitmentApplication application = projectDockingService.updateRecruitmentApplication(applicationId, dto, userId);
+            return Result.success("修改成功", application);
         } catch (Exception e) {
             return Result.error(e.getMessage());
         }

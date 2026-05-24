@@ -33,6 +33,14 @@
         ORDER BY pr.create_time DESC
     </select>
 
+    <select id="selectByStatus" resultMap="BaseResultMap">
+        SELECT pr.*, p.title AS project_title
+        FROM project_recruitment pr
+        LEFT JOIN project p ON pr.project_id = p.id
+        WHERE pr.status = #{status}
+        ORDER BY pr.create_time DESC
+    </select>
+
     <insert id="insert" useGeneratedKeys="true" keyProperty="id">
         INSERT INTO project_recruitment (
             project_id, project_title, publisher_id, publisher_name, position_name,

@@ -20,6 +20,8 @@ public interface ProjectRecruitmentApplicationMapper {
     List<ProjectRecruitmentApplication> selectByRecruitmentIdAndApplicantId(@Param("recruitmentId") Long recruitmentId,
                                                                             @Param("applicantId") Long applicantId);
 
+    List<ProjectRecruitmentApplication> selectByApplicantId(@Param("applicantId") Long applicantId);
+
     int insert(ProjectRecruitmentApplication application);
 
     int update(ProjectRecruitmentApplication application);
