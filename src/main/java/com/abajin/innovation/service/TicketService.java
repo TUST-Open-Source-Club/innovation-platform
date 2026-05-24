@@ -20,6 +20,7 @@ import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 /**
  * 工单服务类
@@ -122,7 +123,7 @@ public class TicketService {
      */
     private List<TicketReply> buildReplyTree(List<TicketReply> allReplies, Long parentId) {
         List<TicketReply> children = allReplies.stream()
-                .filter(r -> parentId == null ? r.getParentId() == null : r.getParentId().equals(parentId))
+                .filter(r -> Objects.equals(r.getParentId(), parentId))
                 .toList();
         for (TicketReply child : children) {
             child.setChildren(buildReplyTree(allReplies, child.getId()));
