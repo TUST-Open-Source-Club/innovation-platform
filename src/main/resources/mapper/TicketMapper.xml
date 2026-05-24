@@ -1,0 +1,172 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.abajin.innovation.mapper.TicketMapper">
+    <resultMap id="TicketResultMap" type="com.abajin.innovation.entity.Ticket">
+        <id column="id" property="id"/>
+        <result column="title" property="title"/>
+        <result column="content" property="content"/>
+        <result column="type_id" property="typeId"/>
+        <result column="type_name" property="typeName"/>
+        <result column="status_id" property="statusId"/>
+        <result column="status_name" property="statusName"/>
+        <result column="urgency" property="urgency"/>
+        <result column="images" property="images"/>
+        <result column="creator_id" property="creatorId"/>
+        <result column="creator_name" property="creatorName"/>
+        <result column="college_id" property="collegeId"/>
+        <result column="college_name" property="collegeName"/>
+        <result column="is_deleted" property="isDeleted"/>
+        <result column="create_time" property="createTime"/>
+        <result column="update_time" property="updateTime"/>
+    </resultMap>
+
+    <select id="selectById" resultMap="TicketResultMap">
+        SELECT t.*,
+               tt.name AS type_name,
+               ts.name AS status_name,
+               u.real_name AS creator_name,
+               c.name AS college_name
+        FROM ticket t
+        LEFT JOIN ticket_type tt ON t.type_id = tt.id
+        LEFT JOIN ticket_status ts ON t.status_id = ts.id
+        LEFT JOIN user u ON t.creator_id = u.id
+        LEFT JOIN college c ON t.college_id = c.id
+        WHERE t.id = #{id} AND t.is_deleted = 0
+    </select>
+
+    <select id="selectPage" resultMap="TicketResultMap">
+        SELECT t.*,
+               tt.name AS type_name,
+               ts.name AS status_name,
+               u.real_name AS creator_name,
+               c.name AS college_name
+        FROM ticket t
+        LEFT JOIN ticket_type tt ON t.type_id = tt.id
+        LEFT JOIN ticket_status ts ON t.status_id = ts.id
+        LEFT JOIN user u ON t.creator_id = u.id
+        LEFT JOIN college c ON t.college_id = c.id
+        <where>
+            AND t.is_deleted = 0
+            <if test="typeId != null">
+                AND t.type_id = #{typeId}
+            </if>
+            <if test="statusId != null">
+                AND t.status_id = #{statusId}
+            </if>
+            <if test="urgency != null and urgency != ''">
+                AND t.urgency = #{urgency}
+            </if>
+            <if test="keyword != null and keyword != ''">
+                AND (t.title LIKE CONCAT('%', #{keyword}, '%') OR t.content LIKE CONCAT('%', #{keyword}, '%'))
+            </if>
+            <if test="creatorId != null">
+                AND t.creator_id = #{creatorId}
+            </if>
+            <if test="collegeId != null">
+                AND t.college_id = #{collegeId}
+            </if>
+        </where>
+        ORDER BY t.create_time DESC
+        LIMIT #{offset}, #{limit}
+    </select>
+
+    <select id="count" resultType="int">
+        SELECT COUNT(*)
+        FROM ticket t
+        <where>
+            AND t.is_deleted = 0
+            <if test="typeId != null">
+                AND t.type_id = #{typeId}
+            </if>
+            <if test="statusId != null">
+                AND t.status_id = #{statusId}
+            </if>
+            <if test="urgency != null and urgency != ''">
+                AND t.urgency = #{urgency}
+            </if>
+            <if test="keyword != null and keyword != ''">
+                AND (t.title LIKE CONCAT('%', #{keyword}, '%') OR t.content LIKE CONCAT('%', #{keyword}, '%'))
+            </if>
+            <if test="creatorId != null">
+                AND t.creator_id = #{creatorId}
+            </if>
+            <if test="collegeId != null">
+                AND t.college_id = #{collegeId}
+            </if>
+        </where>
+    </select>
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO ticket (title, content, type_id, status_id, urgency, images, creator_id, college_id, is_deleted, create_time, update_time)
+        VALUES (#{title}, #{content}, #{typeId}, #{statusId}, #{urgency}, #{images}, #{creatorId}, #{collegeId}, #{isDeleted}, #{createTime}, #{updateTime})
+    </insert>
+
+    <update id="update">
+        UPDATE ticket
+        <set>
+            <if test="title != null">title = #{title},</if>
+            <if test="content != null">content = #{content},</if>
+            <if test="typeId != null">type_id = #{typeId},</if>
+            <if test="statusId != null">status_id = #{statusId},</if>
+            <if test="urgency != null">urgency = #{urgency},</if>
+            <if test="images != null">images = #{images},</if>
+            update_time = #{updateTime}
+        </set>
+        WHERE id = #{id}
+    </update>
+
+    <update id="softDeleteById">
+        UPDATE ticket SET is_deleted = 1, update_time = NOW() WHERE id = #{id}
+    </update>
+
+    <update id="updateStatus">
+        UPDATE ticket SET status_id = #{statusId}, update_time = #{updateTime} WHERE id = #{id}
+    </update>
+
+    <select id="countByType" resultType="map">
+        SELECT tt.name AS type_name, COUNT(t.id) AS count
+        FROM ticket t
+        JOIN ticket_type tt ON t.type_id = tt.id
+        WHERE t.is_deleted = 0
+        GROUP BY t.type_id, tt.name
+    </select>
+
+    <select id="countByStatus" resultType="map">
+        SELECT ts.name AS status_name, COUNT(t.id) AS count
+        FROM ticket t
+        JOIN ticket_status ts ON t.status_id = ts.id
+        WHERE t.is_deleted = 0
+        GROUP BY t.status_id, ts.name
+    </select>
+
+    <select id="countByUrgency" resultType="map">
+        SELECT urgency, COUNT(*) AS count
+        FROM ticket
+        WHERE is_deleted = 0
+        GROUP BY urgency
+    </select>
+
+    <select id="countSatisfaction" resultType="map">
+        SELECT
+            SUM(CASE WHEN te.satisfaction = 'SATISFIED' THEN 1 ELSE 0 END) AS satisfied_count,
+            SUM(CASE WHEN te.satisfaction = 'DISSATISFIED' THEN 1 ELSE 0 END) AS dissatisfied_count,
+            SUM(CASE WHEN te.id IS NULL THEN 1 ELSE 0 END) AS unevaluated_count
+        FROM ticket t
+        LEFT JOIN ticket_evaluation te ON t.id = te.ticket_id
+        WHERE t.is_deleted = 0
+    </select>
+
+    <select id="countCompletionRate" resultType="map">
+        SELECT
+            SUM(CASE WHEN ts.name = '已完结' THEN 1 ELSE 0 END) AS completed_count,
+            SUM(CASE WHEN ts.name NOT IN ('已完结', '已关闭') THEN 1 ELSE 0 END) AS incomplete_count,
+            SUM(CASE WHEN ts.name = '已关闭' THEN 1 ELSE 0 END) AS closed_count
+        FROM ticket t
+        JOIN ticket_status ts ON t.status_id = ts.id
+        WHERE t.is_deleted = 0
+    </select>
+
+    <select id="countTotal" resultType="int">
+        SELECT COUNT(*) FROM ticket WHERE is_deleted = 0
+    </select>
+</mapper>

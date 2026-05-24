@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.abajin.innovation.mapper.TicketEvaluationMapper">
+    <resultMap id="BaseResultMap" type="com.abajin.innovation.entity.TicketEvaluation">
+        <id column="id" property="id"/>
+        <result column="ticket_id" property="ticketId"/>
+        <result column="satisfaction" property="satisfaction"/>
+        <result column="content" property="content"/>
+        <result column="create_time" property="createTime"/>
+        <result column="update_time" property="updateTime"/>
+    </resultMap>
+
+    <select id="selectByTicketId" resultMap="BaseResultMap">
+        SELECT * FROM ticket_evaluation WHERE ticket_id = #{ticketId}
+    </select>
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO ticket_evaluation (ticket_id, satisfaction, content, create_time, update_time)
+        VALUES (#{ticketId}, #{satisfaction}, #{content}, #{createTime}, #{updateTime})
+    </insert>
+
+    <update id="update">
+        UPDATE ticket_evaluation
+        <set>
+            <if test="satisfaction != null">satisfaction = #{satisfaction},</if>
+            <if test="content != null">content = #{content},</if>
+            update_time = #{updateTime}
+        </set>
+        WHERE id = #{id}
+    </update>
+</mapper>

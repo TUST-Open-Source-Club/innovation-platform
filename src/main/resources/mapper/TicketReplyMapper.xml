@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.abajin.innovation.mapper.TicketReplyMapper">
+    <resultMap id="BaseResultMap" type="com.abajin.innovation.entity.TicketReply">
+        <id column="id" property="id"/>
+        <result column="ticket_id" property="ticketId"/>
+        <result column="parent_id" property="parentId"/>
+        <result column="content" property="content"/>
+        <result column="creator_id" property="creatorId"/>
+        <result column="creator_name" property="creatorName"/>
+        <result column="creator_role" property="creatorRole"/>
+        <result column="is_deleted" property="isDeleted"/>
+        <result column="create_time" property="createTime"/>
+        <result column="update_time" property="updateTime"/>
+    </resultMap>
+
+    <select id="selectByTicketId" resultMap="BaseResultMap">
+        SELECT r.*, u.real_name AS creator_name, u.role AS creator_role
+        FROM ticket_reply r
+        LEFT JOIN user u ON r.creator_id = u.id
+        WHERE r.ticket_id = #{ticketId} AND r.is_deleted = 0
+        ORDER BY r.create_time ASC
+    </select>
+
+    <select id="selectById" resultMap="BaseResultMap">
+        SELECT r.*, u.real_name AS creator_name, u.role AS creator_role
+        FROM ticket_reply r
+        LEFT JOIN user u ON r.creator_id = u.id
+        WHERE r.id = #{id} AND r.is_deleted = 0
+    </select>
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO ticket_reply (ticket_id, parent_id, content, creator_id, is_deleted, create_time, update_time)
+        VALUES (#{ticketId}, #{parentId}, #{content}, #{creatorId}, #{isDeleted}, #{createTime}, #{updateTime})
+    </insert>
+
+    <update id="softDeleteById">
+        UPDATE ticket_reply SET is_deleted = 1, update_time = NOW() WHERE id = #{id}
+    </update>
+
+    <update id="softDeleteByParentId">
+        UPDATE ticket_reply SET is_deleted = 1, update_time = NOW() WHERE parent_id = #{parentId}
+    </update>
+
+    <update id="softDeleteByTicketId">
+        UPDATE ticket_reply SET is_deleted = 1, update_time = NOW() WHERE ticket_id = #{ticketId}
+    </update>
+</mapper>
