@@ -39,7 +39,13 @@ public class InformationLinkController {
      * POST /api/information-link/teams/{teamId}/apply
      */
     @PostMapping("/teams/{teamId}/apply")
-    @RequiresRole(value = {Constants.ROLE_STUDENT, Constants.ROLE_TEACHER, Constants.ROLE_STUDENT_ADMIN})
+    @RequiresRole(value = {
+            Constants.ROLE_STUDENT,
+            Constants.ROLE_STUDENT_ADMIN,
+            Constants.ROLE_TEACHER,
+            Constants.ROLE_COLLEGE_ADMIN,
+            Constants.ROLE_SCHOOL_ADMIN
+    }, allowAdmin = true)
     public Result<TeamMember> applyJoinTeam(
             @PathVariable Long teamId,
             @RequestAttribute("userId") Long userId,
@@ -131,7 +137,13 @@ public class InformationLinkController {
      * POST /api/information-link/projects/{projectId}/applications
      */
     @PostMapping("/projects/{projectId}/applications")
-    @RequiresRole(value = {Constants.ROLE_STUDENT, Constants.ROLE_STUDENT_ADMIN}, allowAdmin = true)
+    @RequiresRole(value = {
+            Constants.ROLE_STUDENT,
+            Constants.ROLE_STUDENT_ADMIN,
+            Constants.ROLE_TEACHER,
+            Constants.ROLE_COLLEGE_ADMIN,
+            Constants.ROLE_SCHOOL_ADMIN
+    }, allowAdmin = true)
     public Result<ProjectApplication> applyToProject(
             @PathVariable Long projectId,
             @Valid @RequestBody ProjectApplicationDTO dto,
@@ -167,7 +179,13 @@ public class InformationLinkController {
      * POST /api/information-link/project-applications/{applicationId}/withdraw
      */
     @PostMapping("/project-applications/{applicationId}/withdraw")
-    @RequiresRole(value = {Constants.ROLE_STUDENT, Constants.ROLE_STUDENT_ADMIN}, allowAdmin = true)
+    @RequiresRole(value = {
+            Constants.ROLE_STUDENT,
+            Constants.ROLE_STUDENT_ADMIN,
+            Constants.ROLE_TEACHER,
+            Constants.ROLE_COLLEGE_ADMIN,
+            Constants.ROLE_SCHOOL_ADMIN
+    }, allowAdmin = true)
     public Result<ProjectApplication> withdrawProjectApplication(
             @PathVariable Long applicationId,
             @RequestAttribute("userId") Long userId) {
@@ -327,7 +345,13 @@ public class InformationLinkController {
      * POST /api/information-link/recruitments/{recruitmentId}/applications
      */
     @PostMapping("/recruitments/{recruitmentId}/applications")
-    @RequiresRole(value = {Constants.ROLE_STUDENT, Constants.ROLE_STUDENT_ADMIN}, allowAdmin = true)
+    @RequiresRole(value = {
+            Constants.ROLE_STUDENT,
+            Constants.ROLE_STUDENT_ADMIN,
+            Constants.ROLE_TEACHER,
+            Constants.ROLE_COLLEGE_ADMIN,
+            Constants.ROLE_SCHOOL_ADMIN
+    }, allowAdmin = true)
     public Result<ProjectRecruitmentApplication> applyToRecruitment(
             @PathVariable Long recruitmentId,
             @Valid @RequestBody ProjectRecruitmentApplicationDTO dto,
@@ -392,7 +416,13 @@ public class InformationLinkController {
      * PUT /api/information-link/project-applications/{applicationId}
      */
     @PutMapping("/project-applications/{applicationId}")
-    @RequiresRole(value = {Constants.ROLE_STUDENT, Constants.ROLE_STUDENT_ADMIN}, allowAdmin = true)
+    @RequiresRole(value = {
+            Constants.ROLE_STUDENT,
+            Constants.ROLE_STUDENT_ADMIN,
+            Constants.ROLE_TEACHER,
+            Constants.ROLE_COLLEGE_ADMIN,
+            Constants.ROLE_SCHOOL_ADMIN
+    }, allowAdmin = true)
     public Result<ProjectApplication> updateProjectApplication(
             @PathVariable Long applicationId,
             @Valid @RequestBody ProjectApplicationDTO dto,
@@ -410,7 +440,13 @@ public class InformationLinkController {
      * PUT /api/information-link/recruitment-applications/{applicationId}
      */
     @PutMapping("/recruitment-applications/{applicationId}")
-    @RequiresRole(value = {Constants.ROLE_STUDENT, Constants.ROLE_STUDENT_ADMIN}, allowAdmin = true)
+    @RequiresRole(value = {
+            Constants.ROLE_STUDENT,
+            Constants.ROLE_STUDENT_ADMIN,
+            Constants.ROLE_TEACHER,
+            Constants.ROLE_COLLEGE_ADMIN,
+            Constants.ROLE_SCHOOL_ADMIN
+    }, allowAdmin = true)
     public Result<ProjectRecruitmentApplication> updateRecruitmentApplication(
             @PathVariable Long applicationId,
             @Valid @RequestBody ProjectRecruitmentApplicationDTO dto,
@@ -428,7 +464,13 @@ public class InformationLinkController {
      * POST /api/information-link/recruitment-applications/{applicationId}/withdraw
      */
     @PostMapping("/recruitment-applications/{applicationId}/withdraw")
-    @RequiresRole(value = {Constants.ROLE_STUDENT, Constants.ROLE_STUDENT_ADMIN}, allowAdmin = true)
+    @RequiresRole(value = {
+            Constants.ROLE_STUDENT,
+            Constants.ROLE_STUDENT_ADMIN,
+            Constants.ROLE_TEACHER,
+            Constants.ROLE_COLLEGE_ADMIN,
+            Constants.ROLE_SCHOOL_ADMIN
+    }, allowAdmin = true)
     public Result<ProjectRecruitmentApplication> withdrawRecruitmentApplication(
             @PathVariable Long applicationId,
             @RequestAttribute("userId") Long userId) {

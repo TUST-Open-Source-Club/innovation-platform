@@ -9,6 +9,7 @@ import com.abajin.innovation.entity.Project;
 import com.abajin.innovation.entity.ProjectApplication;
 import com.abajin.innovation.entity.ProjectRecruitment;
 import com.abajin.innovation.entity.ProjectRecruitmentApplication;
+import com.abajin.innovation.entity.Team;
 import com.abajin.innovation.entity.TeamMember;
 import com.abajin.innovation.entity.User;
 import com.abajin.innovation.enums.ApprovalStatus;
@@ -17,6 +18,7 @@ import com.abajin.innovation.mapper.ProjectApplicationMapper;
 import com.abajin.innovation.mapper.ProjectMapper;
 import com.abajin.innovation.mapper.ProjectRecruitmentApplicationMapper;
 import com.abajin.innovation.mapper.ProjectRecruitmentMapper;
+import com.abajin.innovation.mapper.TeamMapper;
 import com.abajin.innovation.mapper.TeamMemberMapper;
 import com.abajin.innovation.mapper.UserMapper;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -53,6 +55,9 @@ public class ProjectDockingService {
 
     @Autowired
     private UserMapper userMapper;
+
+    @Autowired
+    private TeamMapper teamMapper;
 
     @Autowired
     private EmailService emailService;
@@ -128,7 +133,7 @@ public class ProjectDockingService {
 
     public List<ProjectApplication> getProjectApplications(Long projectId, Long userId, String role) {
         Project project = getExistingProject(projectId);
-        if (canManageProjectApplications(project, userId, role)) {
+        if (canViewProjectApplications(project, userId, role)) {
             return projectApplicationMapper.selectByProjectIdAndType(projectId, APPLICATION_TYPE_JOIN_TEAM);
         }
         return projectApplicationMapper.selectByProjectIdAndApplicantIdAndType(projectId, userId, APPLICATION_TYPE_JOIN_TEAM);
@@ -204,8 +209,8 @@ public class ProjectDockingService {
         }
 
         Project project = getExistingProject(application.getProjectId());
-        if (project.getLeaderId() == null || !project.getLeaderId().equals(approverId)) {
-            throw new RuntimeException("只有项目负责人可以审批该申请");
+        if (!canManageProjectApplications(project, approverId, null)) {
+            throw new RuntimeException("只有项目负责人或团队负责人可以审批该申请");
         }
 
         ApprovalStatus approvalStatus = ApprovalStatus.fromCode(dto.getApprovalStatus());
@@ -251,8 +256,8 @@ public class ProjectDockingService {
     @Transactional
     public ProjectRecruitment createRecruitment(Long projectId, ProjectRecruitmentDTO dto, Long publisherId) {
         Project project = getExistingProject(projectId);
-        if (project.getLeaderId() == null || !project.getLeaderId().equals(publisherId)) {
-            throw new RuntimeException("只有项目负责人可以发布招募");
+        if (!canManageProjectApplications(project, publisherId, null)) {
+            throw new RuntimeException("只有项目负责人或团队负责人可以发布招募");
         }
 
         User publisher = getExistingUser(publisherId);
@@ -266,6 +271,7 @@ public class ProjectDockingService {
         recruitment.setCollegePreference(dto.getCollegePreference());
         recruitment.setMajorPreference(dto.getMajorPreference());
         recruitment.setQuestionContent(dto.getQuestionContent());
+        recruitment.setRecruitCount(dto.getRecruitCount());
         recruitment.setStatus(RECRUITMENT_STATUS_OPEN);
         recruitment.setCreateTime(LocalDateTime.now());
         recruitment.setUpdateTime(LocalDateTime.now());
@@ -288,8 +294,8 @@ public class ProjectDockingService {
             throw new RuntimeException("招募不存在");
         }
         Project project = getExistingProject(recruitment.getProjectId());
-        if (project.getLeaderId() == null || !project.getLeaderId().equals(userId)) {
-            throw new RuntimeException("只有项目负责人可以停止招募");
+        if (!canManageProjectApplications(project, userId, null)) {
+            throw new RuntimeException("只有项目负责人或团队负责人可以停止招募");
         }
         recruitment.setStatus("CLOSED");
         recruitment.setUpdateTime(LocalDateTime.now());
@@ -304,8 +310,8 @@ public class ProjectDockingService {
             throw new RuntimeException("招募不存在");
         }
         Project project = getExistingProject(recruitment.getProjectId());
-        if (project.getLeaderId() == null || !project.getLeaderId().equals(userId)) {
-            throw new RuntimeException("只有项目负责人可以重新开启招募");
+        if (!canManageProjectApplications(project, userId, null)) {
+            throw new RuntimeException("只有项目负责人或团队负责人可以重新开启招募");
         }
         recruitment.setStatus(RECRUITMENT_STATUS_OPEN);
         recruitment.setUpdateTime(LocalDateTime.now());
@@ -325,8 +331,8 @@ public class ProjectDockingService {
             throw new RuntimeException("招募不存在");
         }
         Project project = getExistingProject(recruitment.getProjectId());
-        if (project.getLeaderId() == null || !project.getLeaderId().equals(userId)) {
-            throw new RuntimeException("只有项目负责人可以删除招募");
+        if (!canManageProjectApplications(project, userId, null)) {
+            throw new RuntimeException("只有项目负责人或团队负责人可以删除招募");
         }
         projectRecruitmentMapper.deleteById(recruitmentId);
     }
@@ -396,7 +402,7 @@ public class ProjectDockingService {
 
     public List<ProjectRecruitmentApplication> getRecruitmentApplications(Long projectId, Long userId, String role) {
         Project project = getExistingProject(projectId);
-        if (canManageProjectApplications(project, userId, role)) {
+        if (canViewProjectApplications(project, userId, role)) {
             return projectRecruitmentApplicationMapper.selectByProjectId(projectId);
         }
         return projectRecruitmentApplicationMapper.selectByProjectIdAndApplicantId(projectId, userId);
@@ -476,8 +482,8 @@ public class ProjectDockingService {
             throw new RuntimeException("招募不存在");
         }
         Project project = getExistingProject(recruitment.getProjectId());
-        if (project.getLeaderId() == null || !project.getLeaderId().equals(approverId)) {
-            throw new RuntimeException("只有项目负责人可以审批招募申请");
+        if (!canManageProjectApplications(project, approverId, null)) {
+            throw new RuntimeException("只有项目负责人或团队负责人可以审批招募申请");
         }
 
         ApprovalStatus approvalStatus = ApprovalStatus.fromCode(dto.getApprovalStatus());
@@ -532,13 +538,31 @@ public class ProjectDockingService {
     }
 
     private void ensureProjectApplicantRole(String role) {
-        if (!Constants.ROLE_STUDENT.equals(role) && !Constants.ROLE_STUDENT_ADMIN.equals(role)) {
-            throw new RuntimeException("只有学生和学生管理员可以发起申请");
+        // 允许所有已认证角色发起申请（学生、教师、学生管理员、学院管理员、学校管理员）
+        if (role == null) {
+            throw new RuntimeException("用户角色未知，无法发起申请");
         }
     }
 
     private boolean canManageProjectApplications(Project project, Long userId, String role) {
-        return isAdminRole(role) || (project.getLeaderId() != null && project.getLeaderId().equals(userId));
+        if (project.getLeaderId() != null && project.getLeaderId().equals(userId)) {
+            return true;
+        }
+        // 团队负责人也可以管理关联项目的申请
+        if (project.getTeamId() != null) {
+            Team team = teamMapper.selectById(project.getTeamId());
+            if (team != null && team.getLeaderId() != null && team.getLeaderId().equals(userId)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private boolean canViewProjectApplications(Project project, Long userId, String role) {
+        if (isAdminRole(role)) {
+            return true;
+        }
+        return canManageProjectApplications(project, userId, role);
     }
 
     private boolean isAdminRole(String role) {

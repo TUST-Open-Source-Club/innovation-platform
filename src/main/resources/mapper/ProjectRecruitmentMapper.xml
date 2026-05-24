@@ -13,6 +13,7 @@
         <result column="college_preference" property="collegePreference"/>
         <result column="major_preference" property="majorPreference"/>
         <result column="question_content" property="questionContent"/>
+        <result column="recruit_count" property="recruitCount"/>
         <result column="status" property="status"/>
         <result column="create_time" property="createTime"/>
         <result column="update_time" property="updateTime"/>
@@ -41,15 +42,22 @@
         ORDER BY pr.create_time DESC
     </select>
 
+    <select id="selectAll" resultMap="BaseResultMap">
+        SELECT pr.*, p.title AS project_title
+        FROM project_recruitment pr
+        LEFT JOIN project p ON pr.project_id = p.id
+        ORDER BY pr.create_time DESC
+    </select>
+
     <insert id="insert" useGeneratedKeys="true" keyProperty="id">
         INSERT INTO project_recruitment (
             project_id, project_title, publisher_id, publisher_name, position_name,
             task_description, college_preference, major_preference, question_content,
-            status, create_time, update_time
+            recruit_count, status, create_time, update_time
         ) VALUES (
             #{projectId}, #{projectTitle}, #{publisherId}, #{publisherName}, #{positionName},
             #{taskDescription}, #{collegePreference}, #{majorPreference}, #{questionContent},
-            #{status}, #{createTime}, #{updateTime}
+            #{recruitCount}, #{status}, #{createTime}, #{updateTime}
         )
     </insert>
 
@@ -61,6 +69,7 @@
             <if test="collegePreference != null">college_preference = #{collegePreference},</if>
             <if test="majorPreference != null">major_preference = #{majorPreference},</if>
             <if test="questionContent != null">question_content = #{questionContent},</if>
+            <if test="recruitCount != null">recruit_count = #{recruitCount},</if>
             <if test="status != null">status = #{status},</if>
             update_time = #{updateTime}
         </set>

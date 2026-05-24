@@ -14,6 +14,8 @@ public interface ProjectRecruitmentMapper {
 
     List<ProjectRecruitment> selectByStatus(@Param("status") String status);
 
+    List<ProjectRecruitment> selectAll();
+
     int insert(ProjectRecruitment recruitment);
 
     int update(ProjectRecruitment recruitment);

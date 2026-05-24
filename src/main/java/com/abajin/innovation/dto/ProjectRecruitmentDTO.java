@@ -17,4 +17,5 @@ public class ProjectRecruitmentDTO {
     private String collegePreference;
     private String majorPreference;
     private String questionContent;
+    private Integer recruitCount; // 招募人数
 }

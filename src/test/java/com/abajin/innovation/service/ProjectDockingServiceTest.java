@@ -14,6 +14,7 @@ import com.abajin.innovation.mapper.ProjectApplicationMapper;
 import com.abajin.innovation.mapper.ProjectMapper;
 import com.abajin.innovation.mapper.ProjectRecruitmentApplicationMapper;
 import com.abajin.innovation.mapper.ProjectRecruitmentMapper;
+import com.abajin.innovation.mapper.TeamMapper;
 import com.abajin.innovation.mapper.TeamMemberMapper;
 import com.abajin.innovation.mapper.UserMapper;
 import org.junit.jupiter.api.BeforeEach;
@@ -56,6 +57,9 @@ class ProjectDockingServiceTest {
 
     @Mock
     private UserMapper userMapper;
+
+    @Mock
+    private TeamMapper teamMapper;
 
     @Mock
     private EmailService emailService;
@@ -163,15 +167,26 @@ class ProjectDockingServiceTest {
     }
 
     @Test
-    void applyToProject_withTeacherRole_throwsException() {
+    void applyToProject_withTeacherRole_returnsApplication() {
         // Arrange
         ProjectApplicationDTO dto = new ProjectApplicationDTO();
-        when(userMapper.selectById(3L)).thenReturn(teacher);
+        dto.setDesiredPosition("开发");
+        dto.setApplicantMajor("计算机");
 
-        // Act & Assert
-        RuntimeException exception = assertThrows(RuntimeException.class,
-                () -> projectDockingService.applyToProject(1L, dto, 3L));
-        assertEquals("只有学生和学生管理员可以发起申请", exception.getMessage());
+        when(userMapper.selectById(3L)).thenReturn(teacher);
+        when(projectMapper.selectById(1L)).thenReturn(project);
+        when(teamMemberMapper.selectByTeamIdAndUserId(1L, 3L)).thenReturn(null);
+        when(projectApplicationMapper.selectByProjectIdAndApplicantIdAndType(1L, 3L, "JOIN_TEAM"))
+                .thenReturn(Collections.emptyList());
+        when(projectApplicationMapper.insert(any(ProjectApplication.class))).thenReturn(1);
+
+        // Act
+        ProjectApplication result = projectDockingService.applyToProject(1L, dto, 3L);
+
+        // Assert
+        assertNotNull(result);
+        assertEquals("PENDING", result.getApprovalStatus());
+        verify(projectApplicationMapper).insert(any(ProjectApplication.class));
     }
 
     @Test
@@ -275,11 +290,12 @@ class ProjectDockingServiceTest {
 
         when(projectApplicationMapper.selectById(1L)).thenReturn(application);
         when(projectMapper.selectById(1L)).thenReturn(project);
+        when(teamMapper.selectById(1L)).thenReturn(null);
 
         // Act & Assert
         RuntimeException exception = assertThrows(RuntimeException.class,
                 () -> projectDockingService.reviewProjectApplication(1L, new ProjectDockingReviewDTO(), 999L));
-        assertEquals("只有项目负责人可以审批该申请", exception.getMessage());
+        assertEquals("只有项目负责人或团队负责人可以审批该申请", exception.getMessage());
     }
 
     @Test
@@ -323,11 +339,12 @@ class ProjectDockingServiceTest {
     void createRecruitment_withNonLeader_throwsException() {
         // Arrange
         when(projectMapper.selectById(1L)).thenReturn(project);
+        when(teamMapper.selectById(1L)).thenReturn(null);
 
         // Act & Assert
         RuntimeException exception = assertThrows(RuntimeException.class,
                 () -> projectDockingService.createRecruitment(1L, new ProjectRecruitmentDTO(), 999L));
-        assertEquals("只有项目负责人可以发布招募", exception.getMessage());
+        assertEquals("只有项目负责人或团队负责人可以发布招募", exception.getMessage());
     }
 
     @Test

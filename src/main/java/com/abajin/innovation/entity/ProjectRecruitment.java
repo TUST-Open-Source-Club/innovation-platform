@@ -19,6 +19,7 @@ public class ProjectRecruitment {
     private String collegePreference;
     private String majorPreference;
     private String questionContent;
+    private Integer recruitCount; // 招募人数
     private String status;
     private LocalDateTime createTime;
     private LocalDateTime updateTime;
