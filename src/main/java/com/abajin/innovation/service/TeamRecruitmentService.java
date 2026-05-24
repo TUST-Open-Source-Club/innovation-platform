@@ -189,6 +189,24 @@ public class TeamRecruitmentService {
         application.setCreateTime(LocalDateTime.now());
         application.setUpdateTime(LocalDateTime.now());
         teamRecruitmentApplicationMapper.insert(application);
+
+        // 通知团队负责人有新的招募申请
+        if (team.getLeaderId() != null) {
+            User leader = userMapper.selectById(team.getLeaderId());
+            if (leader != null && leader.getEmail() != null && !leader.getEmail().isBlank()) {
+                String subject = "【创新平台】有新的招募申请待审批：" + team.getName();
+                String content = "您好，\n\n用户 " + applicant.getRealName() + " 申请加入团队《" + team.getName() + "》的招募岗位「" + (dto.getDesiredPosition() != null ? dto.getDesiredPosition() : "未指定") + "」，请尽快审批。\n\n请登录创新平台查看详情。\n";
+                emailService.sendMail(leader.getEmail(), subject, content);
+            }
+        }
+
+        // 邮件回执：给申请人发邮件确认
+        if (applicant.getEmail() != null && !applicant.getEmail().isBlank()) {
+            String subject = "【创新平台】您已成功提交团队招募申请";
+            String content = "您好，\n\n您已成功提交加入团队《" + team.getName() + "》招募岗位「" + (dto.getDesiredPosition() != null ? dto.getDesiredPosition() : "未指定") + "」的申请，请等待团队负责人审批。\n\n请登录创新平台查看详情。\n";
+            emailService.sendMail(applicant.getEmail(), subject, content);
+        }
+
         return teamRecruitmentApplicationMapper.selectById(application.getId());
     }
 

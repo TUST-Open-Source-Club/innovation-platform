@@ -393,6 +393,24 @@ public class ProjectDockingService {
         application.setCreateTime(LocalDateTime.now());
         application.setUpdateTime(LocalDateTime.now());
         projectRecruitmentApplicationMapper.insert(application);
+
+        // 通知项目负责人有新的招募申请
+        if (project.getLeaderId() != null) {
+            User leader = userMapper.selectById(project.getLeaderId());
+            if (leader != null && leader.getEmail() != null && !leader.getEmail().isBlank()) {
+                String subject = "【创新平台】有新的招募申请待审批：" + project.getTitle();
+                String content = "您好，\n\n用户 " + applicant.getRealName() + " 申请加入项目《" + project.getTitle() + "》的招募岗位「" + (dto.getDesiredPosition() != null ? dto.getDesiredPosition() : "未指定") + "」，请尽快审批。\n\n请登录创新平台查看详情。\n";
+                emailService.sendMail(leader.getEmail(), subject, content);
+            }
+        }
+
+        // 邮件回执：给申请人发邮件确认
+        if (applicant.getEmail() != null && !applicant.getEmail().isBlank()) {
+            String subject = "【创新平台】您已成功提交招募申请";
+            String content = "您好，\n\n您已成功提交加入项目《" + project.getTitle() + "》招募岗位「" + (dto.getDesiredPosition() != null ? dto.getDesiredPosition() : "未指定") + "」的申请，请等待项目负责人审批。\n\n请登录创新平台查看详情。\n";
+            emailService.sendMail(applicant.getEmail(), subject, content);
+        }
+
         return projectRecruitmentApplicationMapper.selectById(application.getId());
     }
 

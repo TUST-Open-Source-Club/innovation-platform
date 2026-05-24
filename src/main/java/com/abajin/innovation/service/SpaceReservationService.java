@@ -294,6 +294,23 @@ public class SpaceReservationService {
             reservation.setApprovalStatus(ApprovalStatus.REJECTED.name());
         }
         reservationMapper.update(reservation);
+
+        // 通知申请人审批结果
+        if (emailService != null) {
+            String spaceName = reservation.getCustomSpaceName();
+            if (spaceName == null || spaceName.isBlank()) {
+                Space space = spaceMapper.selectById(reservation.getSpaceId());
+                if (space != null) {
+                    spaceName = space.getName();
+                } else {
+                    spaceName = "未知空间";
+                }
+            }
+            String itemTitle = spaceName + " " + reservation.getReservationDate() + " " + reservation.getStartTime() + "-" + reservation.getEndTime();
+            emailService.notifyApplicant(reservation.getApplicantId(), "空间预约", itemTitle,
+                    ApprovalStatus.APPROVED.equals(status), reviewComment);
+        }
+
         return reservation;
     }
 

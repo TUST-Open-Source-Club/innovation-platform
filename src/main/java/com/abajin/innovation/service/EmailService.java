@@ -94,6 +94,25 @@ public class EmailService {
     }
 
     /**
+     * 通知学生管理员有新的待处理项
+     */
+    @Async
+    public void notifyStudentAdmins(String itemType, String itemTitle) {
+        List<User> admins = userMapper.selectByRole(Constants.ROLE_STUDENT_ADMIN);
+        if (admins == null || admins.isEmpty()) {
+            log.warn("未找到学生管理员，无法发送通知");
+            return;
+        }
+        String subject = "【创新平台】有新的" + itemType + "待处理";
+        String content = "您好，\n\n有新的" + itemType + "《" + itemTitle + "》已提交，等待您处理。\n\n请登录创新平台查看详情。\n";
+        for (User admin : admins) {
+            if (admin.getEmail() != null && !admin.getEmail().isBlank()) {
+                sendMail(admin.getEmail(), subject, content);
+            }
+        }
+    }
+
+    /**
      * 通知申请人审批结果
      */
     @Async

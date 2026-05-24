@@ -38,6 +38,9 @@ public class TicketService {
     @Autowired
     private UserMapper userMapper;
 
+    @Autowired
+    private EmailService emailService;
+
     /**
      * 创建工单
      */
@@ -61,6 +64,13 @@ public class TicketService {
         ticket.setUpdateTime(LocalDateTime.now());
 
         ticketMapper.insert(ticket);
+
+        // 通知学校管理员和学生管理员有新工单
+        if (emailService != null) {
+            emailService.notifySchoolAdmins("工单", ticket.getTitle());
+            emailService.notifyStudentAdmins("工单", ticket.getTitle());
+        }
+
         return ticketMapper.selectById(ticket.getId());
     }
 
@@ -187,7 +197,19 @@ public class TicketService {
             throw new RuntimeException("工单不存在");
         }
         TicketStatusEnum newStatus = TicketStatusEnum.fromCode(statusCode);
+        TicketStatusEnum oldStatus = ticket.getStatusId();
         ticketMapper.updateStatus(id, newStatus, LocalDateTime.now());
+
+        // 通知工单创建人状态变更
+        if (emailService != null && newStatus != oldStatus) {
+            User creator = userMapper.selectById(ticket.getCreatorId());
+            if (creator != null && creator.getEmail() != null && !creator.getEmail().isBlank()) {
+                String subject = "【创新平台】您的工单状态已更新：" + ticket.getTitle();
+                String content = "您好，\n\n您的工单《" + ticket.getTitle() + "》状态已由「" + oldStatus.getDescription() + "」更新为「" + newStatus.getDescription() + "」。\n\n请登录创新平台查看详情。\n";
+                emailService.sendMail(creator.getEmail(), subject, content);
+            }
+        }
+
         return ticketMapper.selectById(id);
     }
 
