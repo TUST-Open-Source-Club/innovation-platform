@@ -38,6 +38,10 @@ public class EmailService {
             log.warn("邮件收件人为空，跳过发送: subject={}", subject);
             return;
         }
+        if (fromEmail == null || fromEmail.isBlank()) {
+            log.warn("邮件发件人未配置，跳过发送: to={}, subject={}", to, subject);
+            return;
+        }
         try {
             SimpleMailMessage message = new SimpleMailMessage();
             message.setFrom(fromEmail);
