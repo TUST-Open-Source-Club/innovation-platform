@@ -3,11 +3,10 @@ package com.abajin.innovation.service;
 import com.abajin.innovation.dto.CreateTicketReplyDTO;
 import com.abajin.innovation.entity.Ticket;
 import com.abajin.innovation.entity.TicketReply;
-import com.abajin.innovation.entity.TicketStatus;
 import com.abajin.innovation.entity.User;
+import com.abajin.innovation.enums.TicketStatusEnum;
 import com.abajin.innovation.mapper.TicketMapper;
 import com.abajin.innovation.mapper.TicketReplyMapper;
-import com.abajin.innovation.mapper.TicketStatusMapper;
 import com.abajin.innovation.mapper.UserMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -29,9 +28,6 @@ public class TicketReplyService {
 
     @Autowired
     private TicketMapper ticketMapper;
-
-    @Autowired
-    private TicketStatusMapper ticketStatusMapper;
 
     @Autowired
     private UserMapper userMapper;
@@ -82,25 +78,16 @@ public class TicketReplyService {
      * 工单创建者回复：待回复→已受理
      */
     private void autoUpdateTicketStatus(Ticket ticket, Long userId) {
-        TicketStatus currentStatus = ticketStatusMapper.selectById(ticket.getStatusId());
-        if (currentStatus == null) return;
-
         User user = userMapper.selectById(userId);
         if (user == null) return;
 
         boolean isAdmin = "SCHOOL_ADMIN".equals(user.getRole()) || "COLLEGE_ADMIN".equals(user.getRole());
         boolean isCreator = ticket.getCreatorId().equals(userId);
 
-        if (isAdmin && "已受理".equals(currentStatus.getName())) {
-            TicketStatus pendingStatus = ticketStatusMapper.selectByName("待回复");
-            if (pendingStatus != null) {
-                ticketMapper.updateStatus(ticket.getId(), pendingStatus.getId(), LocalDateTime.now());
-            }
-        } else if (isCreator && "待回复".equals(currentStatus.getName())) {
-            TicketStatus acceptedStatus = ticketStatusMapper.selectByName("已受理");
-            if (acceptedStatus != null) {
-                ticketMapper.updateStatus(ticket.getId(), acceptedStatus.getId(), LocalDateTime.now());
-            }
+        if (isAdmin && ticket.getStatusId() == TicketStatusEnum.ACCEPTED) {
+            ticketMapper.updateStatus(ticket.getId(), TicketStatusEnum.PENDING_REPLY, LocalDateTime.now());
+        } else if (isCreator && ticket.getStatusId() == TicketStatusEnum.PENDING_REPLY) {
+            ticketMapper.updateStatus(ticket.getId(), TicketStatusEnum.ACCEPTED, LocalDateTime.now());
         }
     }
 

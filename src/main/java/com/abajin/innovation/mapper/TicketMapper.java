@@ -1,9 +1,11 @@
 package com.abajin.innovation.mapper;
 
 import com.abajin.innovation.entity.Ticket;
+import com.abajin.innovation.enums.TicketStatusEnum;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 
@@ -19,7 +21,7 @@ public interface TicketMapper {
             @Param("offset") int offset,
             @Param("limit") int limit,
             @Param("typeId") Long typeId,
-            @Param("statusId") Long statusId,
+            @Param("statusId") TicketStatusEnum statusId,
             @Param("urgency") String urgency,
             @Param("keyword") String keyword,
             @Param("creatorId") Long creatorId,
@@ -28,7 +30,7 @@ public interface TicketMapper {
 
     int count(
             @Param("typeId") Long typeId,
-            @Param("statusId") Long statusId,
+            @Param("statusId") TicketStatusEnum statusId,
             @Param("urgency") String urgency,
             @Param("keyword") String keyword,
             @Param("creatorId") Long creatorId,
@@ -41,7 +43,7 @@ public interface TicketMapper {
 
     int softDeleteById(@Param("id") Long id);
 
-    int updateStatus(@Param("id") Long id, @Param("statusId") Long statusId, @Param("updateTime") java.time.LocalDateTime updateTime);
+    int updateStatus(@Param("id") Long id, @Param("statusId") TicketStatusEnum statusId, @Param("updateTime") LocalDateTime updateTime);
 
     List<Map<String, Object>> countByType();
 

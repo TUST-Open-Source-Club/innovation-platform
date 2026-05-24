@@ -144,9 +144,9 @@ public class TicketController {
     @RequiresRole(value = {Constants.ROLE_COLLEGE_ADMIN, Constants.ROLE_SCHOOL_ADMIN}, allowAdmin = true)
     public Result<Ticket> updateTicketStatus(
             @PathVariable Long id,
-            @RequestBody Map<String, Long> body) {
+            @RequestBody Map<String, Integer> body) {
         try {
-            Long statusId = body.get("statusId");
+            Integer statusId = body.get("statusId");
             if (statusId == null) {
                 return Result.error("状态ID不能为空");
             }

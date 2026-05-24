@@ -6,11 +6,10 @@ import com.abajin.innovation.dto.TicketQueryDTO;
 import com.abajin.innovation.dto.UpdateTicketDTO;
 import com.abajin.innovation.entity.Ticket;
 import com.abajin.innovation.entity.TicketReply;
-import com.abajin.innovation.entity.TicketStatus;
 import com.abajin.innovation.entity.User;
+import com.abajin.innovation.enums.TicketStatusEnum;
 import com.abajin.innovation.mapper.TicketMapper;
 import com.abajin.innovation.mapper.TicketReplyMapper;
-import com.abajin.innovation.mapper.TicketStatusMapper;
 import com.abajin.innovation.mapper.UserMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -18,6 +17,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -30,9 +30,6 @@ public class TicketService {
 
     @Autowired
     private TicketMapper ticketMapper;
-
-    @Autowired
-    private TicketStatusMapper ticketStatusMapper;
 
     @Autowired
     private TicketReplyMapper ticketReplyMapper;
@@ -49,17 +46,11 @@ public class TicketService {
             throw new RuntimeException("用户不存在");
         }
 
-        // 获取默认状态（已提出）
-        TicketStatus defaultStatus = ticketStatusMapper.selectByName("已提出");
-        if (defaultStatus == null) {
-            throw new RuntimeException("系统错误：默认状态不存在");
-        }
-
         Ticket ticket = new Ticket();
         ticket.setTitle(dto.getTitle());
         ticket.setContent(dto.getContent());
         ticket.setTypeId(dto.getTypeId());
-        ticket.setStatusId(defaultStatus.getId());
+        ticket.setStatusId(TicketStatusEnum.SUBMITTED);
         ticket.setUrgency(dto.getUrgency());
         ticket.setImages(dto.getImages());
         ticket.setCreatorId(userId);
@@ -80,10 +71,15 @@ public class TicketService {
         int pageSize = queryDTO.getPageSize() != null ? queryDTO.getPageSize() : 10;
         int offset = (pageNum - 1) * pageSize;
 
+        TicketStatusEnum statusEnum = null;
+        if (queryDTO.getStatusId() != null) {
+            statusEnum = TicketStatusEnum.fromCode(queryDTO.getStatusId());
+        }
+
         List<Ticket> list = ticketMapper.selectPage(
                 offset, pageSize,
                 queryDTO.getTypeId(),
-                queryDTO.getStatusId(),
+                statusEnum,
                 queryDTO.getUrgency(),
                 queryDTO.getKeyword(),
                 queryDTO.getCreatorId(),
@@ -92,7 +88,7 @@ public class TicketService {
 
         int total = ticketMapper.count(
                 queryDTO.getTypeId(),
-                queryDTO.getStatusId(),
+                statusEnum,
                 queryDTO.getUrgency(),
                 queryDTO.getKeyword(),
                 queryDTO.getCreatorId(),
@@ -146,8 +142,7 @@ public class TicketService {
             throw new RuntimeException("只能编辑自己创建的工单");
         }
         // 检查状态：只有"已提出"状态允许编辑
-        TicketStatus status = ticketStatusMapper.selectById(ticket.getStatusId());
-        if (status == null || !"已提出".equals(status.getName())) {
+        if (ticket.getStatusId() != TicketStatusEnum.SUBMITTED) {
             throw new RuntimeException("当前状态不允许编辑");
         }
 
@@ -185,16 +180,13 @@ public class TicketService {
     /**
      * 更新工单状态
      */
-    public Ticket updateTicketStatus(Long id, Long statusId) {
+    public Ticket updateTicketStatus(Long id, Integer statusCode) {
         Ticket ticket = ticketMapper.selectById(id);
         if (ticket == null) {
             throw new RuntimeException("工单不存在");
         }
-        TicketStatus newStatus = ticketStatusMapper.selectById(statusId);
-        if (newStatus == null) {
-            throw new RuntimeException("目标状态不存在");
-        }
-        ticketMapper.updateStatus(id, statusId, LocalDateTime.now());
+        TicketStatusEnum newStatus = TicketStatusEnum.fromCode(statusCode);
+        ticketMapper.updateStatus(id, newStatus, LocalDateTime.now());
         return ticketMapper.selectById(id);
     }
 
@@ -220,7 +212,14 @@ public class TicketService {
      * 统计：按状态
      */
     public List<Map<String, Object>> countByStatus() {
-        return ticketMapper.countByStatus();
+        List<Map<String, Object>> result = ticketMapper.countByStatus();
+        for (Map<String, Object> item : result) {
+            Integer code = (Integer) item.remove("status_code");
+            if (code != null) {
+                item.put("name", TicketStatusEnum.fromCode(code).getDescription());
+            }
+        }
+        return result;
     }
 
     /**
@@ -234,14 +233,30 @@ public class TicketService {
      * 统计：满意度
      */
     public Map<String, Object> countSatisfaction() {
-        return ticketMapper.countSatisfaction();
+        Map<String, Object> result = ticketMapper.countSatisfaction();
+        Map<String, Object> formatted = new HashMap<>();
+        formatted.put("satisfied", ((Number) result.getOrDefault("satisfied_count", 0)).longValue());
+        formatted.put("dissatisfied", ((Number) result.getOrDefault("dissatisfied_count", 0)).longValue());
+        formatted.put("unrated", ((Number) result.getOrDefault("unevaluated_count", 0)).longValue());
+        return formatted;
     }
 
     /**
      * 统计：完成率
      */
     public Map<String, Object> countCompletionRate() {
-        return ticketMapper.countCompletionRate();
+        Map<String, Object> result = ticketMapper.countCompletionRate();
+        long completed = ((Number) result.getOrDefault("completed_count", 0)).longValue();
+        long inProgress = ((Number) result.getOrDefault("incomplete_count", 0)).longValue();
+        long closed = ((Number) result.getOrDefault("closed_count", 0)).longValue();
+        long total = completed + inProgress + closed;
+
+        Map<String, Object> formatted = new HashMap<>();
+        formatted.put("completed", completed);
+        formatted.put("inProgress", inProgress);
+        formatted.put("closed", closed);
+        formatted.put("rate", total > 0 ? Math.round((double) completed / total * 10000.0) / 100.0 : 0.0);
+        return formatted;
     }
 
     /**

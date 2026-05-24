@@ -3,10 +3,9 @@ package com.abajin.innovation.service;
 import com.abajin.innovation.dto.TicketEvaluationDTO;
 import com.abajin.innovation.entity.Ticket;
 import com.abajin.innovation.entity.TicketEvaluation;
-import com.abajin.innovation.entity.TicketStatus;
+import com.abajin.innovation.enums.TicketStatusEnum;
 import com.abajin.innovation.mapper.TicketEvaluationMapper;
 import com.abajin.innovation.mapper.TicketMapper;
-import com.abajin.innovation.mapper.TicketStatusMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -27,9 +26,6 @@ public class TicketEvaluationService {
     @Autowired
     private TicketMapper ticketMapper;
 
-    @Autowired
-    private TicketStatusMapper ticketStatusMapper;
-
     /**
      * 创建评价
      */
@@ -43,8 +39,7 @@ public class TicketEvaluationService {
             throw new RuntimeException("只有工单创建者才能评价");
         }
         // 只有已完结的工单可以评价
-        TicketStatus status = ticketStatusMapper.selectById(ticket.getStatusId());
-        if (status == null || !"已完结".equals(status.getName())) {
+        if (ticket.getStatusId() != TicketStatusEnum.COMPLETED) {
             throw new RuntimeException("只有已完结的工单才能评价");
         }
         // 检查是否已评价
