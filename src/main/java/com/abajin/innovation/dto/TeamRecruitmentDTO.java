@@ -1,0 +1,21 @@
+package com.abajin.innovation.dto;
+
+import jakarta.validation.constraints.NotBlank;
+import lombok.Data;
+
+/**
+ * 团队招募 DTO
+ */
+@Data
+public class TeamRecruitmentDTO {
+    @NotBlank(message = "招募职位不能为空")
+    private String positionName;
+
+    @NotBlank(message = "任务说明不能为空")
+    private String taskDescription;
+
+    private String collegePreference;
+    private String majorPreference;
+    private String questionContent;
+    private Integer recruitCount; // 招募人数
+}

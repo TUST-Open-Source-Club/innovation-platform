@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.abajin.innovation.mapper.TeamRecruitmentApplicationMapper">
+
+    <resultMap id="BaseResultMap" type="com.abajin.innovation.entity.TeamRecruitmentApplication">
+        <id column="id" property="id"/>
+        <result column="recruitment_id" property="recruitmentId"/>
+        <result column="team_id" property="teamId"/>
+        <result column="team_name" property="teamName"/>
+        <result column="recruitment_position_name" property="recruitmentPositionName"/>
+        <result column="applicant_id" property="applicantId"/>
+        <result column="applicant_name" property="applicantName"/>
+        <result column="applicant_role" property="applicantRole"/>
+        <result column="desired_position" property="desiredPosition"/>
+        <result column="applicant_college_id" property="applicantCollegeId"/>
+        <result column="applicant_college_name" property="applicantCollegeName"/>
+        <result column="applicant_major" property="applicantMajor"/>
+        <result column="qualifications" property="qualifications"/>
+        <result column="answer_content" property="answerContent"/>
+        <result column="resume_url" property="resumeUrl"/>
+        <result column="remark" property="remark"/>
+        <result column="approval_status" property="approvalStatus"/>
+        <result column="approver_id" property="approverId"/>
+        <result column="approver_name" property="approverName"/>
+        <result column="approval_comment" property="approvalComment"/>
+        <result column="approval_time" property="approvalTime"/>
+        <result column="create_time" property="createTime"/>
+        <result column="update_time" property="updateTime"/>
+    </resultMap>
+
+    <sql id="BaseSelect">
+        SELECT tra.*,
+               t.name AS team_name,
+               tr.position_name AS recruitment_position_name
+        FROM team_recruitment_application tra
+        LEFT JOIN team t ON tra.team_id = t.id
+        LEFT JOIN team_recruitment tr ON tra.recruitment_id = tr.id
+    </sql>
+
+    <select id="selectById" resultMap="BaseResultMap">
+        <include refid="BaseSelect"/>
+        WHERE tra.id = #{id}
+    </select>
+
+    <select id="selectByTeamId" resultMap="BaseResultMap">
+        <include refid="BaseSelect"/>
+        WHERE tra.team_id = #{teamId}
+        ORDER BY tra.create_time DESC
+    </select>
+
+    <select id="selectByTeamIdAndApplicantId" resultMap="BaseResultMap">
+        <include refid="BaseSelect"/>
+        WHERE tra.team_id = #{teamId}
+          AND tra.applicant_id = #{applicantId}
+        ORDER BY tra.create_time DESC
+    </select>
+
+    <select id="selectByRecruitmentId" resultMap="BaseResultMap">
+        <include refid="BaseSelect"/>
+        WHERE tra.recruitment_id = #{recruitmentId}
+        ORDER BY tra.create_time DESC
+    </select>
+
+    <select id="selectByRecruitmentIdAndApplicantId" resultMap="BaseResultMap">
+        <include refid="BaseSelect"/>
+        WHERE tra.recruitment_id = #{recruitmentId}
+          AND tra.applicant_id = #{applicantId}
+        ORDER BY tra.create_time DESC
+    </select>
+
+    <select id="selectByApplicantId" resultMap="BaseResultMap">
+        <include refid="BaseSelect"/>
+        WHERE tra.applicant_id = #{applicantId}
+        ORDER BY tra.create_time DESC
+    </select>
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO team_recruitment_application (
+            recruitment_id, team_id, applicant_id, applicant_name, applicant_role,
+            desired_position, applicant_college_id, applicant_college_name, applicant_major,
+            qualifications, answer_content, resume_url, remark,
+            approval_status, create_time, update_time
+        ) VALUES (
+            #{recruitmentId}, #{teamId}, #{applicantId}, #{applicantName}, #{applicantRole},
+            #{desiredPosition}, #{applicantCollegeId}, #{applicantCollegeName}, #{applicantMajor},
+            #{qualifications}, #{answerContent}, #{resumeUrl}, #{remark},
+            #{approvalStatus}, #{createTime}, #{updateTime}
+        )
+    </insert>
+
+    <update id="update">
+        UPDATE team_recruitment_application
+        <set>
+            <if test="desiredPosition != null">desired_position = #{desiredPosition},</if>
+            <if test="applicantCollegeId != null">applicant_college_id = #{applicantCollegeId},</if>
+            <if test="applicantCollegeName != null">applicant_college_name = #{applicantCollegeName},</if>
+            <if test="applicantMajor != null">applicant_major = #{applicantMajor},</if>
+            <if test="qualifications != null">qualifications = #{qualifications},</if>
+            <if test="answerContent != null">answer_content = #{answerContent},</if>
+            <if test="resumeUrl != null">resume_url = #{resumeUrl},</if>
+            <if test="remark != null">remark = #{remark},</if>
+            <if test="approvalStatus != null">approval_status = #{approvalStatus},</if>
+            <if test="approverId != null">approver_id = #{approverId},</if>
+            <if test="approverName != null">approver_name = #{approverName},</if>
+            <if test="approvalComment != null">approval_comment = #{approvalComment},</if>
+            <if test="approvalTime != null">approval_time = #{approvalTime},</if>
+            update_time = #{updateTime}
+        </set>
+        WHERE id = #{id}
+    </update>
+
+</mapper>

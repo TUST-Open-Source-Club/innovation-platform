@@ -32,7 +32,7 @@ spring:
       initialization-fail-timeout: 60000
   mail:
     host: ${SMTP_HOST:localhost}
-    port: ${SMTP_PORT:587}
+    port: 465
     username: ${SMTP_USERNAME:}
     password: ${SMTP_PASSWORD:}
     protocol: smtp
@@ -41,8 +41,13 @@ spring:
       mail:
         smtp:
           auth: true
-          starttls:
+          ssl:
             enable: true
+            trust: ${SMTP_HOST:localhost}
+          socketFactory:
+            port: 465
+            class: javax.net.ssl.SSLSocketFactory
+            fallback: false
 
 server:
   port: 8080
