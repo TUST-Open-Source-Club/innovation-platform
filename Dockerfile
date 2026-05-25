@@ -51,11 +51,20 @@ RUN sed -i 's|https://dl-cdn.alpinelinux.org/alpine|http://mirrors.aliyun.com/al
 # 设置时区
 ENV TZ=Asia/Shanghai
 
+# 创建非root用户和用户组
+RUN addgroup -S appgroup && adduser -S appuser -G appgroup
+
 # 设置工作目录
 WORKDIR /app
 
 # 从构建阶段复制 jar 包
 COPY --from=builder /app/target/*.jar app.jar
+
+# 修改文件权限
+RUN chown -R appuser:appgroup /app
+
+# 切换到非root用户
+USER appuser
 
 # 暴露端口
 EXPOSE 8080
