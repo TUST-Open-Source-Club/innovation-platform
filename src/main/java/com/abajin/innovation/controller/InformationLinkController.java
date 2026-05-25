@@ -63,7 +63,12 @@ public class InformationLinkController {
      * POST /api/information-link/projects/{projectId}/takeover
      */
     @PostMapping("/projects/{projectId}/takeover")
-    @RequiresRole(value = {Constants.ROLE_TEACHER})
+    @RequiresRole(value = {
+            Constants.ROLE_STUDENT_ADMIN,
+            Constants.ROLE_TEACHER,
+            Constants.ROLE_COLLEGE_ADMIN,
+            Constants.ROLE_SCHOOL_ADMIN
+    }, allowAdmin = true)
     public Result<Project> applyTakeoverProject(
             @PathVariable Long projectId,
             @RequestAttribute("userId") Long userId) {

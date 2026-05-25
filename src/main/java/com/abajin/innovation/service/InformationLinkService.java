@@ -110,8 +110,12 @@ public class InformationLinkService {
         }
 
         User teacher = userMapper.selectById(teacherId);
-        if (teacher == null || !"TEACHER".equals(teacher.getRole())) {
-            throw new RuntimeException("只有教师可以申请接管项目");
+        if (teacher == null || (
+                !"TEACHER".equals(teacher.getRole())
+                && !"STUDENT_ADMIN".equals(teacher.getRole())
+                && !"COLLEGE_ADMIN".equals(teacher.getRole())
+                && !"SCHOOL_ADMIN".equals(teacher.getRole()))) {
+            throw new RuntimeException("只有教师或管理员可以申请接管项目");
         }
 
         // 设置申请接管的教师为待审核负责人，由学院/学校管理员在项目审核中审批

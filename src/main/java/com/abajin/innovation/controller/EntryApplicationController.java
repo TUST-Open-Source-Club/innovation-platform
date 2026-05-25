@@ -28,7 +28,13 @@ public class EntryApplicationController {
      * POST /api/entry-applications
      */
     @PostMapping
-    @RequiresRole(value = {Constants.ROLE_STUDENT, Constants.ROLE_TEACHER})
+    @RequiresRole(value = {
+            Constants.ROLE_STUDENT,
+            Constants.ROLE_STUDENT_ADMIN,
+            Constants.ROLE_TEACHER,
+            Constants.ROLE_COLLEGE_ADMIN,
+            Constants.ROLE_SCHOOL_ADMIN
+    }, allowAdmin = true)
     public Result<EntryApplication> createEntryApplication(
             @Valid @RequestBody EntryApplication application,
             @RequestAttribute("userId") Long userId) {
@@ -45,7 +51,13 @@ public class EntryApplicationController {
      * POST /api/entry-applications/{id}/submit
      */
     @PostMapping("/{id}/submit")
-    @RequiresRole(value = {Constants.ROLE_STUDENT, Constants.ROLE_TEACHER})
+    @RequiresRole(value = {
+            Constants.ROLE_STUDENT,
+            Constants.ROLE_STUDENT_ADMIN,
+            Constants.ROLE_TEACHER,
+            Constants.ROLE_COLLEGE_ADMIN,
+            Constants.ROLE_SCHOOL_ADMIN
+    }, allowAdmin = true)
     public Result<EntryApplication> submitEntryApplication(
             @PathVariable Long id,
             @RequestAttribute("userId") Long userId) {
@@ -171,7 +183,13 @@ public class EntryApplicationController {
      * PUT /api/entry-applications/{id}
      */
     @PutMapping("/{id}")
-    @RequiresRole(value = {Constants.ROLE_STUDENT, Constants.ROLE_TEACHER})
+    @RequiresRole(value = {
+            Constants.ROLE_STUDENT,
+            Constants.ROLE_STUDENT_ADMIN,
+            Constants.ROLE_TEACHER,
+            Constants.ROLE_COLLEGE_ADMIN,
+            Constants.ROLE_SCHOOL_ADMIN
+    }, allowAdmin = true)
     public Result<EntryApplication> updateEntryApplication(
             @PathVariable Long id,
             @Valid @RequestBody EntryApplication application,
@@ -189,7 +207,13 @@ public class EntryApplicationController {
      * DELETE /api/entry-applications/{id}
      */
     @DeleteMapping("/{id}")
-    @RequiresRole(value = {Constants.ROLE_STUDENT, Constants.ROLE_TEACHER})
+    @RequiresRole(value = {
+            Constants.ROLE_STUDENT,
+            Constants.ROLE_STUDENT_ADMIN,
+            Constants.ROLE_TEACHER,
+            Constants.ROLE_COLLEGE_ADMIN,
+            Constants.ROLE_SCHOOL_ADMIN
+    }, allowAdmin = true)
     public Result<Void> deleteEntryApplication(
             @PathVariable Long id,
             @RequestAttribute("userId") Long userId) {

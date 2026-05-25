@@ -48,8 +48,11 @@ public class ProjectApplicationService {
             throw new RuntimeException("申请人不存在");
         }
 
-        if (!Constants.ROLE_STUDENT.equals(applicant.getRole())) {
-            throw new RuntimeException("只有学生可以申请加入团队");
+        if (!Constants.ROLE_STUDENT.equals(applicant.getRole())
+                && !Constants.ROLE_STUDENT_ADMIN.equals(applicant.getRole())
+                && !Constants.ROLE_COLLEGE_ADMIN.equals(applicant.getRole())
+                && !Constants.ROLE_SCHOOL_ADMIN.equals(applicant.getRole())) {
+            throw new RuntimeException("只有学生或管理员可以申请加入团队");
         }
 
         Project project = projectMapper.selectById(dto.getProjectId());
@@ -113,8 +116,11 @@ public class ProjectApplicationService {
             throw new RuntimeException("申请人不存在");
         }
 
-        if (!Constants.ROLE_TEACHER.equals(applicant.getRole())) {
-            throw new RuntimeException("只有教师可以申请接管项目");
+        if (!Constants.ROLE_TEACHER.equals(applicant.getRole())
+                && !Constants.ROLE_STUDENT_ADMIN.equals(applicant.getRole())
+                && !Constants.ROLE_COLLEGE_ADMIN.equals(applicant.getRole())
+                && !Constants.ROLE_SCHOOL_ADMIN.equals(applicant.getRole())) {
+            throw new RuntimeException("只有教师或管理员可以申请接管项目");
         }
 
         Project project = projectMapper.selectById(dto.getProjectId());
