@@ -32,7 +32,6 @@ public class TeamController {
     private ProjectService projectService;
 
     @PostMapping
-    @RequiresRole(value = {Constants.ROLE_STUDENT, Constants.ROLE_TEACHER})
     public Result<Team> createTeam(
             @Valid @RequestBody Team team,
             @RequestAttribute("userId") Long userId) {
@@ -45,7 +44,6 @@ public class TeamController {
     }
 
     @PutMapping("/{id}")
-    @RequiresRole(value = {Constants.ROLE_STUDENT, Constants.ROLE_TEACHER})
     public Result<Team> updateTeam(
             @PathVariable Long id,
             @Valid @RequestBody Team team,
@@ -59,7 +57,6 @@ public class TeamController {
     }
 
     @PostMapping("/{id}/members")
-    @RequiresRole(value = {Constants.ROLE_STUDENT, Constants.ROLE_TEACHER})
     public Result<Void> addMember(
             @PathVariable Long id,
             @RequestBody Map<String, Long> data,
@@ -74,7 +71,6 @@ public class TeamController {
     }
 
     @DeleteMapping("/{id}/members/{memberId}")
-    @RequiresRole(value = {Constants.ROLE_STUDENT, Constants.ROLE_TEACHER})
     public Result<Void> removeMember(
             @PathVariable Long id,
             @PathVariable Long memberId,
@@ -228,7 +224,6 @@ public class TeamController {
      * POST /api/teams/{id}/members/{memberId}/review
      */
     @PostMapping("/{id}/members/{memberId}/review")
-    @RequiresRole(value = {Constants.ROLE_STUDENT, Constants.ROLE_TEACHER})
     public Result<TeamMember> reviewMemberApplication(
             @PathVariable Long id,
             @PathVariable Long memberId,
@@ -252,7 +247,6 @@ public class TeamController {
      * GET /api/teams/{id}/members/pending
      */
     @GetMapping("/{id}/members/pending")
-    @RequiresRole(value = {Constants.ROLE_STUDENT, Constants.ROLE_TEACHER})
     public Result<List<TeamMember>> getPendingApplications(
             @PathVariable Long id,
             @RequestAttribute("userId") Long userId) {
