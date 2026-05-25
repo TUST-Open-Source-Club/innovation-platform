@@ -152,4 +152,23 @@ public class EmailService {
             }
         }
     }
+
+    /**
+     * 通知全体管理团队成员（学生管理员、学院管理员、学校管理员）
+     */
+    @Async
+    public void notifyAllAdmins(String subject, String content) {
+        String[] roles = {Constants.ROLE_STUDENT_ADMIN, Constants.ROLE_COLLEGE_ADMIN, Constants.ROLE_SCHOOL_ADMIN};
+        for (String role : roles) {
+            List<User> admins = userMapper.selectByRole(role);
+            if (admins == null || admins.isEmpty()) {
+                continue;
+            }
+            for (User admin : admins) {
+                if (admin.getEmail() != null && !admin.getEmail().isBlank()) {
+                    sendMail(admin.getEmail(), subject, content);
+                }
+            }
+        }
+    }
 }

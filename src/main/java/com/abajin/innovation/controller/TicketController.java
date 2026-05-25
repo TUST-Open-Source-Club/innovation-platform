@@ -48,8 +48,15 @@ public class TicketController {
      * GET /api/tickets
      */
     @GetMapping
-    public Result<PageResult<Ticket>> getTicketList(TicketQueryDTO queryDTO) {
+    public Result<PageResult<Ticket>> getTicketList(
+            TicketQueryDTO queryDTO,
+            @RequestAttribute("userId") Long userId,
+            @RequestAttribute("role") String userRole) {
         try {
+            // 学生和教师只能查看自己的工单
+            if (Constants.ROLE_STUDENT.equals(userRole) || Constants.ROLE_TEACHER.equals(userRole)) {
+                queryDTO.setCreatorId(userId);
+            }
             PageResult<Ticket> result = ticketService.getTicketPage(queryDTO);
             return Result.success(result);
         } catch (Exception e) {

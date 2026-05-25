@@ -32,6 +32,9 @@ public class TicketReplyService {
     @Autowired
     private UserMapper userMapper;
 
+    @Autowired
+    private EmailService emailService;
+
     /**
      * 创建回复
      */
@@ -83,6 +86,20 @@ public class TicketReplyService {
 
         // 自动变更工单状态
         autoUpdateTicketStatus(ticket, userId);
+
+        // 工单创建者回复时通知全体管理团队成员
+        boolean isCreator = ticket.getCreatorId() != null && ticket.getCreatorId().equals(userId);
+        if (isCreator && emailService != null) {
+            User creator = userMapper.selectById(userId);
+            String creatorName = creator != null ? creator.getRealName() : "未知用户";
+            String subject = "【创新平台】工单有新回复：" + ticket.getTitle();
+            StringBuilder mailContent = new StringBuilder();
+            mailContent.append("您好，\n\n工单《").append(ticket.getTitle()).append("》有新的回复。\n\n");
+            mailContent.append("回复人：").append(creatorName).append("\n");
+            mailContent.append("回复内容：\n").append(dto.getContent()).append("\n\n");
+            mailContent.append("请登录创新平台查看详情。\n");
+            emailService.notifyAllAdmins(subject, mailContent.toString());
+        }
 
         TicketReply result = ticketReplyMapper.selectById(reply.getId());
         log.info("回复创建完成: replyId={}", result != null ? result.getId() : "null");

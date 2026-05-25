@@ -6,10 +6,12 @@ import com.abajin.innovation.dto.TicketQueryDTO;
 import com.abajin.innovation.dto.UpdateTicketDTO;
 import com.abajin.innovation.entity.Ticket;
 import com.abajin.innovation.entity.TicketReply;
+import com.abajin.innovation.entity.TicketType;
 import com.abajin.innovation.entity.User;
 import com.abajin.innovation.enums.TicketStatusEnum;
 import com.abajin.innovation.mapper.TicketMapper;
 import com.abajin.innovation.mapper.TicketReplyMapper;
+import com.abajin.innovation.mapper.TicketTypeMapper;
 import com.abajin.innovation.mapper.UserMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -39,6 +41,9 @@ public class TicketService {
     private UserMapper userMapper;
 
     @Autowired
+    private TicketTypeMapper ticketTypeMapper;
+
+    @Autowired
     private EmailService emailService;
 
     /**
@@ -65,10 +70,26 @@ public class TicketService {
 
         ticketMapper.insert(ticket);
 
-        // 通知学校管理员和学生管理员有新工单
+        // 通知全体管理团队成员有新工单
         if (emailService != null) {
-            emailService.notifySchoolAdmins("工单", ticket.getTitle());
-            emailService.notifyStudentAdmins("工单", ticket.getTitle());
+            TicketType ticketType = ticketTypeMapper.selectById(ticket.getTypeId());
+            String typeName = ticketType != null ? ticketType.getName() : "未知类型";
+            String urgencyText = switch (ticket.getUrgency()) {
+                case "URGENT" -> "紧急";
+                case "HIGH" -> "高";
+                case "MEDIUM" -> "中";
+                case "LOW" -> "低";
+                default -> ticket.getUrgency();
+            };
+            String subject = "【创新平台】有新工单提交：" + ticket.getTitle();
+            StringBuilder mailContent = new StringBuilder();
+            mailContent.append("您好，\n\n有新工单已提交。\n\n");
+            mailContent.append("标题：").append(ticket.getTitle()).append("\n");
+            mailContent.append("类型：").append(typeName).append("\n");
+            mailContent.append("紧急程度：").append(urgencyText).append("\n");
+            mailContent.append("内容：\n").append(ticket.getContent()).append("\n\n");
+            mailContent.append("请登录创新平台查看详情。\n");
+            emailService.notifyAllAdmins(subject, mailContent.toString());
         }
 
         return ticketMapper.selectById(ticket.getId());
